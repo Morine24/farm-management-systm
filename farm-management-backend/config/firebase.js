@@ -2,16 +2,23 @@ const { initializeApp, cert } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');
 const path = require('path');
 
-// Load service account key
-const serviceAccount = require(path.join(__dirname, '../serviceAccountKey.json'));
-
-// Initialize Firebase Admin with service account
 let db;
 try {
-  const app = initializeApp({
-    credential: cert(serviceAccount)
-  });
+  let credential;
   
+  // Use environment variables in production, JSON file in development
+  if (process.env.NODE_ENV === 'production') {
+    credential = cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL
+    });
+  } else {
+    const serviceAccount = require(path.join(__dirname, '../serviceAccountKey.json'));
+    credential = cert(serviceAccount);
+  }
+  
+  const app = initializeApp({ credential });
   db = getFirestore(app);
   console.log('✅ Firebase connected to Firestore successfully');
 } catch (error) {
