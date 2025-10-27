@@ -2,20 +2,21 @@ const express = require('express');
 const cors = require('cors');
 const http = require('http');
 const socketIo = require('socket.io');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : "http://localhost:3000",
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: "http://localhost:3000",
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : "http://localhost:3000",
   credentials: true
 }));
 app.use(express.json());
@@ -64,6 +65,14 @@ app.set('io', io);
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
+
+// Serve static files in production
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, '../farm-management-frontend/build')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, '../farm-management-frontend/build/index.html'));
+  });
+}
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {
