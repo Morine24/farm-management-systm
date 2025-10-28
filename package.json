@@ -1,4 +1,11 @@
 {
+  "name": "farm-management-system",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "cd farm-management-frontend && npm install && npm run build",
+    "start": "cd farm-management-backend && npm start",
+    "postinstall": "cd farm-management-backend && npm install"
+  },
   "dependencies": {
     "firebase-admin": "^13.5.0"
   }
