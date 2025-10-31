@@ -343,6 +343,37 @@ const Farms: React.FC = () => {
         </button>
       </div>
 
+      <div className="flex gap-2 mb-4">
+        <button
+          onClick={() => setStructureModal({ type: 'section', parentId: '' })}
+          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Section
+        </button>
+        <button
+          onClick={() => setStructureModal({ type: 'block', parentId: '' })}
+          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Block
+        </button>
+        <button
+          onClick={() => setStructureModal({ type: 'bed', parentId: '' })}
+          className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Bed
+        </button>
+        <button
+          onClick={() => setStructureModal({ type: 'dripline', parentId: '' })}
+          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+        >
+          <Plus className="h-4 w-4 mr-2" />
+          Add Drip Line
+        </button>
+      </div>
+
       <div className="bg-white rounded-lg shadow overflow-hidden">
         {farms.length === 0 ? (
           <div className="text-center py-12">
