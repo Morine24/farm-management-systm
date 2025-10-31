@@ -9,14 +9,18 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : "http://localhost:3000",
+    origin: process.env.NODE_ENV === 'production' 
+      ? process.env.FRONTEND_URL 
+      : ["http://localhost:3000", "http://localhost:3001"],
     methods: ["GET", "POST", "PUT", "DELETE"]
   }
 });
 
 // Middleware
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : "http://localhost:3000",
+  origin: process.env.NODE_ENV === 'production' 
+    ? process.env.FRONTEND_URL 
+    : ["http://localhost:3000", "http://localhost:3001"],
   credentials: true
 }));
 app.use(express.json());
@@ -35,7 +39,11 @@ try {
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
-app.use('/api/fields', require('./routes/fields'));
+app.use('/api/farms', require('./routes/farms'));
+app.use('/api/sections', require('./routes/sections'));
+app.use('/api/blocks', require('./routes/blocks'));
+app.use('/api/beds', require('./routes/beds'));
+app.use('/api/driplines', require('./routes/driplines'));
 app.use('/api/crops', require('./routes/crops'));
 app.use('/api/tasks', require('./routes/tasks'));
 app.use('/api/inventory', require('./routes/inventory'));
@@ -61,18 +69,20 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
+// Serve static files from React build
+app.use(express.static(path.join(__dirname, '../farm-management-frontend/build')));
+
 // Health check endpoint
 app.get('/health', (req, res) => {
   res.json({ status: 'OK', timestamp: new Date().toISOString() });
 });
 
-// Serve static files in production
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../farm-management-frontend/build')));
-  app.get('*', (req, res) => {
+// Serve React app for all non-API routes
+app.get('*', (req, res) => {
+  if (!req.path.startsWith('/api')) {
     res.sendFile(path.join(__dirname, '../farm-management-frontend/build/index.html'));
-  });
-}
+  }
+});
 
 const PORT = process.env.PORT || 5001;
 server.listen(PORT, () => {

@@ -6,15 +6,15 @@ router.get('/stats', async (req, res) => {
   try {
     const db = req.app.get('db');
     
-    const [fieldsSnapshot, cropsSnapshot, tasksSnapshot, inventorySnapshot, financialSnapshot] = await Promise.all([
-      db.collection('fields').get(),
+    const [farmsSnapshot, cropsSnapshot, tasksSnapshot, inventorySnapshot, financialSnapshot] = await Promise.all([
+      db.collection('farms').get(),
       db.collection('crops').where('status', 'in', ['planted', 'growing']).get(),
       db.collection('tasks').where('status', '==', 'pending').get(),
       db.collection('inventory').get(),
       db.collection('financial').get()
     ]);
 
-    const totalFields = fieldsSnapshot.size;
+    const totalFields = farmsSnapshot.size;
     const activeCrops = cropsSnapshot.size;
     const pendingTasks = tasksSnapshot.size;
     
@@ -34,12 +34,14 @@ router.get('/stats', async (req, res) => {
     
     financialSnapshot.forEach(doc => {
       const data = doc.data();
-      const recordDate = data.date.toDate();
-      if (recordDate >= currentMonth) {
-        if (data.type === 'income') {
-          monthlyRevenue += data.amount;
-        } else if (data.type === 'expense') {
-          monthlyExpenses += data.amount;
+      if (data.date && data.date.toDate) {
+        const recordDate = data.date.toDate();
+        if (recordDate >= currentMonth) {
+          if (data.type === 'income') {
+            monthlyRevenue += data.amount;
+          } else if (data.type === 'expense') {
+            monthlyExpenses += data.amount;
+          }
         }
       }
     });

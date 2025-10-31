@@ -179,65 +179,91 @@ const Tasks: React.FC = () => {
       </div>
 
       {/* Tasks List */}
-      <div className="space-y-4">
-        {filteredTasks.map((task) => (
-          <div key={task.id} className="bg-white rounded-lg shadow p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between space-y-4 lg:space-y-0">
-              <div className="flex-1">
-                <div className="flex items-center space-x-3 mb-2">
-                  <span className="text-2xl">{getTaskIcon(task.type)}</span>
-                  <h3 className="text-lg font-semibold text-gray-900">{task.title}</h3>
-                  <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
-                    {task.status.replace('_', ' ')}
-                  </span>
-                  <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
-                    {task.priority.toUpperCase()}
-                  </span>
-                </div>
-                <p className="text-gray-600 mb-3">{task.description}</p>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
-                  <div className="flex items-center">
-                    <Calendar className="h-4 w-4 mr-1" />
-                    Due: {format(new Date(task.dueDate), 'MMM dd, yyyy')}
-                  </div>
-                  <div className="flex items-center">
-                    <User className="h-4 w-4 mr-1" />
-                    {task.assignedTo}
-                  </div>
-                  <div className="flex items-center">
-                    <Clock className="h-4 w-4 mr-1" />
-                    {task.type}
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex space-x-2">
-                {task.status === 'pending' && (
-                  <button
-                    onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                    className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
-                  >
-                    Start
-                  </button>
-                )}
-                {task.status === 'in_progress' && (
-                  <button
-                    onClick={() => updateTaskStatus(task.id, 'completed')}
-                    className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
-                  >
-                    Complete
-                  </button>
-                )}
-                {task.status === 'completed' && (
-                  <div className="flex items-center text-green-600">
-                    <CheckCircle className="h-5 w-5 mr-1" />
-                    Completed
-                  </div>
-                )}
-              </div>
-            </div>
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredTasks.map((task) => (
+                <tr key={task.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <span className="text-2xl mr-2">{getTaskIcon(task.type)}</span>
+                      <div>
+                        <div className="font-medium text-gray-900">{task.title}</div>
+                        <div className="text-sm text-gray-500">{task.description}</div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-gray-900">{task.type}</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <User className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-900">{task.assignedTo}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                      <span className="text-sm text-gray-900">{format(new Date(task.dueDate), 'MMM dd, yyyy')}</span>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
+                      {task.priority.toUpperCase()}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
+                      {task.status.replace('_', ' ')}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    {task.status === 'pending' && (
+                      <button
+                        onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                      >
+                        Start
+                      </button>
+                    )}
+                    {task.status === 'in_progress' && (
+                      <button
+                        onClick={() => updateTaskStatus(task.id, 'completed')}
+                        className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                      >
+                        Complete
+                      </button>
+                    )}
+                    {task.status === 'completed' && (
+                      <div className="flex items-center text-green-600">
+                        <CheckCircle className="h-5 w-5 mr-1" />
+                        Completed
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {filteredTasks.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-gray-500 text-lg">No tasks found</p>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Add Task Modal */}

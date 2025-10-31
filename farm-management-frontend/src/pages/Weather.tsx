@@ -218,7 +218,7 @@ const Weather: React.FC = () => {
           {forecast.map((day, index) => (
             <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900 mb-2">
-                {day.date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
+                {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>
               <div className="flex justify-center mb-2">
                 {getWeatherIcon(day.conditions)}

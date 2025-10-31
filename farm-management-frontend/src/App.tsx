@@ -1,12 +1,14 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './contexts/UserContext';
+import { SocketProvider } from './contexts/SocketContext';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WorkerDashboard from './pages/WorkerDashboard';
 import FinancialDashboard from './pages/FinancialDashboard';
-import Fields from './pages/Fields';
+import Farms from './pages/Farms';
+import AddSection from './pages/AddSection';
 import Crops from './pages/Crops';
 import Tasks from './pages/Tasks';
 import Inventory from './pages/Inventory';
@@ -35,7 +37,8 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<Navigate to="/" replace />} />
         {!isWorker && (
           <>
-            <Route path="/fields" element={<Fields />} />
+            <Route path="/farms" element={<Farms />} />
+            <Route path="/add-section" element={<AddSection />} />
             <Route path="/crops" element={<Crops />} />
             <Route path="/tasks" element={<Tasks />} />
             <Route path="/weather" element={<Weather />} />
@@ -58,9 +61,11 @@ const AppRoutes: React.FC = () => {
 function App() {
   return (
     <UserProvider>
-      <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-        <AppRoutes />
-      </Router>
+      <SocketProvider>
+        <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+          <AppRoutes />
+        </Router>
+      </SocketProvider>
     </UserProvider>
   );
 }

@@ -13,7 +13,8 @@ import {
   X,
   Bell,
   LogOut,
-  Briefcase
+  Briefcase,
+  
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 
@@ -45,7 +46,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isManager) {
       return [
         ...baseNav,
-        { name: 'Fields', href: '/fields', icon: Map },
+        { name: 'Farms', href: '/farms', icon: Map },
         { name: 'Crops', href: '/crops', icon: Wheat },
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Inventory', href: '/inventory', icon: Package },
