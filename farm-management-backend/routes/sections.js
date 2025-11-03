@@ -1,7 +1,28 @@
 const express = require('express');
 const router = express.Router();
 
-// Get all sections for a farm
+// Get sections (with optional farmId query parameter)
+router.get('/', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const { farmId } = req.query;
+    
+    if (farmId) {
+      const snapshot = await db.collection('sections').where('farmId', '==', farmId).get();
+      const sections = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return res.json(sections);
+    }
+    
+    // Return all sections if no farmId specified
+    const snapshot = await db.collection('sections').get();
+    const sections = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(sections);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all sections for a farm (legacy endpoint)
 router.get('/farm/:farmId', async (req, res) => {
   try {
     const db = req.app.get('db');

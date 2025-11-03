@@ -74,14 +74,175 @@ const getSoilHealthColor = (ph: number) => {
   return 'text-red-600';
 };
 
+const FarmTreeView: React.FC<{
+  farm: Farm;
+  selectedFarm: Farm | null;
+  selectedSection: Section | null;
+  selectedBlock: Block | null;
+  selectedBed: Bed | null;
+  setSelectedFarm: (farm: Farm) => void;
+  setSelectedSection: (section: Section | null) => void;
+  setSelectedBlock: (block: Block | null) => void;
+  setSelectedBed: (bed: Bed | null) => void;
+}> = ({ farm, selectedFarm, setSelectedFarm, setSelectedSection, setSelectedBlock, setSelectedBed }) => {
+  const [sections, setSections] = useState<Section[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (expanded) {
+      const unsubscribe = onSnapshot(query(collection(db, 'sections'), where('farmId', '==', farm.id)), (snapshot) => {
+        setSections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Section)));
+      });
+      return () => unsubscribe();
+    }
+  }, [expanded, farm.id]);
+
+  return (
+    <div className="border-l-2 border-gray-200 pl-2">
+      <div 
+        className={`p-2 rounded cursor-pointer hover:bg-gray-100 ${
+          selectedFarm?.id === farm.id ? 'bg-blue-100' : ''
+        }`}
+        onClick={() => {
+          setSelectedFarm(farm);
+          setSelectedSection(null);
+          setSelectedBlock(null);
+          setSelectedBed(null);
+        }}
+      >
+        <div className="flex items-center">
+          <span 
+            className="mr-2 text-xs cursor-pointer"
+            onClick={(e) => { e.stopPropagation(); setExpanded(!expanded); }}
+          >
+            {sections.length > 0 ? (expanded ? '▼' : '▶') : '•'}
+          </span>
+          <span className="font-medium">{farm.name}</span>
+        </div>
+      </div>
+      {expanded && sections.map(section => (
+        <SectionTreeView key={section.id} section={section} setSelectedSection={setSelectedSection} setSelectedBlock={setSelectedBlock} setSelectedBed={setSelectedBed} />
+      ))}
+    </div>
+  );
+};
+
+const SectionTreeView: React.FC<{
+  section: Section;
+  setSelectedSection: (section: Section) => void;
+  setSelectedBlock: (block: Block | null) => void;
+  setSelectedBed: (bed: Bed | null) => void;
+}> = ({ section, setSelectedSection, setSelectedBlock, setSelectedBed }) => {
+  return (
+    <div 
+      className="ml-4 p-1 rounded cursor-pointer hover:bg-gray-100"
+      onClick={() => {
+        setSelectedSection(section);
+        setSelectedBlock(null);
+        setSelectedBed(null);
+      }}
+    >
+      <span className="text-sm">{section.name}</span>
+    </div>
+  );
+};
+
+const DetailsPanel: React.FC<{
+  selectedFarm: Farm | null;
+  selectedSection: Section | null;
+  selectedBlock: Block | null;
+  selectedBed: Bed | null;
+}> = ({ selectedFarm, selectedSection, selectedBlock, selectedBed }) => {
+  if (selectedBed) {
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Bed Details</h2>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="font-semibold">{selectedBed.name}</h3>
+          <p>Dimensions: {selectedBed.length}m × {selectedBed.width}m</p>
+          <p>Area: {(selectedBed.length * selectedBed.width).toFixed(1)} m²</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedBlock) {
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Block Details</h2>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="font-semibold">{selectedBlock.name}</h3>
+          <p>Crop: {selectedBlock.cropType}</p>
+          <p>Status: {selectedBlock.status}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedSection) {
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Section Details</h2>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="font-semibold">{selectedSection.name}</h3>
+          <p>Area: {selectedSection.area} acres</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (selectedFarm) {
+    return (
+      <div>
+        <h2 className="text-xl font-bold mb-4">Farm Details</h2>
+        <div className="bg-white p-4 rounded-lg shadow">
+          <h3 className="font-semibold">{selectedFarm.name}</h3>
+          <p>Area: {selectedFarm.area} acres</p>
+          <p>Soil Type: {selectedFarm.soilType}</p>
+          <div className="mt-4 grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-sm text-gray-600">pH Level</p>
+              <p className={`text-lg font-bold ${getSoilHealthColor(selectedFarm.soilHealth.ph)}`}>
+                {selectedFarm.soilHealth.ph}
+              </p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600">Moisture</p>
+              <p className="text-lg font-bold text-blue-600">{selectedFarm.soilHealth.moisture}%</p>
+            </div>
+            <div className="text-center">
+              <p className="text-sm text-gray-600">Temperature</p>
+              <p className="text-lg font-bold text-orange-600">{selectedFarm.soilHealth.temperature}°C</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="text-center py-12">
+      <p className="text-gray-500">Select a farm, section, block, or bed to view details</p>
+    </div>
+  );
+};
+
 const Farms: React.FC = () => {
   const [farms, setFarms] = useState<Farm[]>([]);
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [selectedBlock, setSelectedBlock] = useState<Block | null>(null);
+  const [selectedBed, setSelectedBed] = useState<Bed | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingFarm, setEditingFarm] = useState<Farm | null>(null);
   const [structureModal, setStructureModal] = useState<ModalType | null>(null);
   const [isLoadingSections, setIsLoadingSections] = useState(false);
+  const [selectedModalFarm, setSelectedModalFarm] = useState<Farm | null>(null);
+  const [modalSections, setModalSections] = useState<Section[]>([]);
+  const [modalBlocks, setModalBlocks] = useState<Block[]>([]);
+  const [modalBeds, setModalBeds] = useState<Bed[]>([]);
+  const [isLoadingModalSections, setIsLoadingModalSections] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
@@ -159,37 +320,33 @@ const Farms: React.FC = () => {
           break;
           
         case 'block':
-          const sectionId = structureModal.parentId;
+          const sectionId = structureModal.parentId || formData.get('sectionId') as string;
           const cropType = formData.get('cropType') as string;
           const blockStatus = formData.get('status') as string;
           await axios.post(`${API_URL}/blocks`, { 
             name, 
             sectionId, 
             cropType, 
-            status: blockStatus,
-            parentId: sectionId,
-            farmId: selectedFarm?.id 
+            status: blockStatus
           });
           toast.success(`Block "${name}" added successfully!`);
           break;
           
         case 'bed':
-          const blockId = structureModal.parentId;
+          const blockId = structureModal.parentId || formData.get('blockId') as string;
           const length = parseFloat(formData.get('length') as string);
           const width = parseFloat(formData.get('width') as string);
           await axios.post(`${API_URL}/beds`, { 
             name, 
             blockId, 
             length, 
-            width,
-            parentId: blockId,
-            farmId: selectedFarm?.id 
+            width
           });
           toast.success(`Bed "${name}" added successfully!`);
           break;
           
         case 'dripline':
-          const bedId = structureModal.parentId;
+          const bedId = structureModal.parentId || formData.get('bedId') as string;
           const flowRate = parseFloat(formData.get('flowRate') as string);
           await axios.post(`${API_URL}/driplines`, { 
             name, 
@@ -202,6 +359,10 @@ const Farms: React.FC = () => {
       }
       
       setStructureModal(null);
+      setSelectedModalFarm(null);
+      setModalSections([]);
+      setModalBlocks([]);
+      setModalBeds([]);
     } catch (error) {
       console.error('Failed to add structure:', error);
       toast.error('Failed to add structure');
@@ -240,9 +401,9 @@ const Farms: React.FC = () => {
 
   if (selectedFarm) {
     return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-4">
+      <div className="h-screen flex flex-col bg-gray-50">
+        <div className="bg-white border-b p-4 flex items-center justify-between">
+          <div className="flex items-center space-x-3">
             <button onClick={() => setSelectedFarm(null)} className="p-2 hover:bg-gray-100 rounded-lg">
               <ArrowLeft className="h-5 w-5" />
             </button>
@@ -251,204 +412,158 @@ const Farms: React.FC = () => {
               <p className="text-sm text-gray-500">{selectedFarm.area} acres • {selectedFarm.soilType} soil</p>
             </div>
           </div>
-          <button
-            onClick={() => setStructureModal({ type: 'section', parentId: selectedFarm.id })}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Section
+          <button onClick={() => setEditingFarm(selectedFarm)} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+            <Edit className="h-4 w-4 inline mr-1" />Edit
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">pH Level</span>
-              <span className={`text-lg font-bold ${getSoilHealthColor(selectedFarm.soilHealth.ph)}`}>
+        <div className="flex-1 overflow-y-auto p-6">
+          <div className="grid grid-cols-3 gap-4 mb-6">
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <p className="text-xs text-gray-500 mb-1">pH Level</p>
+              <p className={`text-2xl font-bold ${getSoilHealthColor(selectedFarm.soilHealth.ph)}`}>
                 {selectedFarm.soilHealth.ph}
-              </span>
+              </p>
             </div>
-          </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Moisture</span>
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <p className="text-xs text-gray-500 mb-1">Moisture</p>
               <div className="flex items-center">
-                <Droplets className="h-4 w-4 text-blue-500 mr-1" />
-                <span className="text-lg font-bold">{selectedFarm.soilHealth.moisture}%</span>
+                <Droplets className="h-5 w-5 text-blue-500 mr-2" />
+                <span className="text-2xl font-bold text-blue-600">{selectedFarm.soilHealth.moisture}%</span>
+              </div>
+            </div>
+            <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <p className="text-xs text-gray-500 mb-1">Temperature</p>
+              <div className="flex items-center">
+                <ThermometerSun className="h-5 w-5 text-orange-500 mr-2" />
+                <span className="text-2xl font-bold text-orange-600">{selectedFarm.soilHealth.temperature}°C</span>
               </div>
             </div>
           </div>
-          <div className="bg-white p-4 rounded-lg shadow">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-600">Temperature</span>
-              <div className="flex items-center">
-                <ThermometerSun className="h-4 w-4 text-orange-500 mr-1" />
-                <span className="text-lg font-bold">{selectedFarm.soilHealth.temperature}°C</span>
-              </div>
-            </div>
-          </div>
-        </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg font-semibold flex items-center">
-              <Layers className="h-5 w-5 mr-2" />
-              Farm Structure
-            </h2>
-            <button
-              onClick={() => setStructureModal({ type: 'section', parentId: selectedFarm.id })}
-              className="flex items-center px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
-            >
-              <Plus className="h-4 w-4 mr-1" />
-              Add Section
-            </button>
+          <div className="bg-white rounded-lg shadow-sm border">
+            <div className="p-4 border-b flex justify-between items-center">
+              <h2 className="text-lg font-semibold flex items-center">
+                <Layers className="h-5 w-5 mr-2 text-green-600" />
+                Farm Structure
+              </h2>
+              <button 
+                onClick={() => setStructureModal({ type: 'section', parentId: selectedFarm.id })}
+                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+              >
+                <Plus className="h-3 w-3 inline mr-1" />Add Section
+              </button>
+            </div>
+            <div className="p-4">
+              {isLoadingSections ? (
+                <p className="text-gray-500 text-center py-8">Loading...</p>
+              ) : sections.length === 0 ? (
+                <p className="text-gray-500 text-center py-8">No sections yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {sections.map(section => (
+                    <SectionView 
+                      key={section.id} 
+                      section={section} 
+                      loadBlocks={loadBlocks} 
+                      loadBeds={loadBeds} 
+                      loadDriplines={loadDriplines} 
+                      setStructureModal={setStructureModal}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
-          {isLoadingSections ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">Loading sections...</p>
-            </div>
-          ) : sections.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">No sections yet. Click "Add Section" to create one.</p>
-          ) : (
-            <div className="space-y-4">
-              {sections.map(section => (
-                <SectionView 
-                  key={section.id} 
-                  section={section} 
-                  loadBlocks={loadBlocks} 
-                  loadBeds={loadBeds} 
-                  loadDriplines={loadDriplines} 
-                  setStructureModal={setStructureModal}
-                />
-              ))}
-            </div>
-          )}
         </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
+    <div className="h-screen flex flex-col">
       <Toaster position="top-center" reverseOrder={false} />
       
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <h1 className="text-2xl font-bold text-gray-900">Farm Management</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Farm
-        </button>
+      <div className="flex justify-between items-center p-6 border-b bg-white shadow-sm">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Farm Manager</h1>
+          <p className="text-gray-600 mt-1">Manage your farms, sections, blocks, and beds</p>
+        </div>
+        <div className="flex gap-3">
+          <button 
+            onClick={() => setShowAddModal(true)} 
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />Add Farm
+          </button>
+          <button 
+            onClick={() => setStructureModal({ type: 'section', parentId: '' })} 
+            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />Add Section
+          </button>
+          <button 
+            onClick={() => setStructureModal({ type: 'block', parentId: '' })} 
+            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+          >
+            <Plus className="h-4 w-4 mr-2" />Add Block
+          </button>
+        </div>
       </div>
 
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setStructureModal({ type: 'section', parentId: '' })}
-          className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Section
-        </button>
-        <button
-          onClick={() => setStructureModal({ type: 'block', parentId: '' })}
-          className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Block
-        </button>
-        <button
-          onClick={() => setStructureModal({ type: 'bed', parentId: '' })}
-          className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Bed
-        </button>
-        <button
-          onClick={() => setStructureModal({ type: 'dripline', parentId: '' })}
-          className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Drip Line
-        </button>
-      </div>
+      <div className="flex-1 p-6 overflow-y-auto">
+        <div className="mb-6">
+          <h2 className="text-xl font-semibold mb-4">Farms</h2>
+          {farms.length === 0 ? (
+            <div className="text-center py-12">
+              <p className="text-gray-500 mb-4">No farms yet. Create your first farm to get started.</p>
+              <button 
+                onClick={() => setShowAddModal(true)} 
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              >
+                <Plus className="h-5 w-5 mr-2 inline" />
+                Add Your First Farm
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              {farms.map(farm => (
+                <div 
+                  key={farm.id}
+                  onClick={() => setSelectedFarm(farm)}
+                  className="bg-gradient-to-br from-green-400 to-green-600 rounded-lg p-4 cursor-pointer hover:from-green-500 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg text-white"
+                >
+                  <div className="flex justify-between items-start mb-3">
+                    <h3 className="text-lg font-bold truncate">{farm.name}</h3>
+                    <div className="flex space-x-1">
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }}
+                        className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors"
+                        title="Edit"
+                      >
+                        <Edit className="h-3 w-3" />
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }}
+                        className="p-1 text-white hover:bg-red-500 hover:bg-opacity-50 rounded transition-colors"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <p className="text-green-100 text-sm mb-3">{farm.area} acres</p>
+                  
+                  <div className="text-center">
+                    <span className="text-sm font-medium">Click to manage</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        {farms.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-gray-500 text-lg">No farms yet. Add your first farm!</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Soil Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">pH Level</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Moisture</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {farms.map((farm) => (
-                  <tr key={farm.id} className="hover:bg-blue-50 transition-colors cursor-pointer" onClick={() => setSelectedFarm(farm)}>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{farm.name}</div>
-                      <div className="text-xs text-gray-500">ID: {farm.id.slice(0, 8)}</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{farm.area} acres</div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-800 rounded-full">
-                        {farm.soilType}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <span className={`text-sm font-semibold ${getSoilHealthColor(farm.soilHealth.ph)}`}>
-                          {farm.soilHealth.ph}
-                        </span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <Droplets className="h-4 w-4 text-blue-500 mr-1" />
-                        <span className="text-sm text-gray-900">{farm.soilHealth.moisture}%</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <ThermometerSun className="h-4 w-4 text-orange-500 mr-1" />
-                        <span className="text-sm text-gray-900">{farm.soilHealth.temperature}°C</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex space-x-2">
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button 
-                          onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
       </div>
 
       {/* Add/Edit Farm Modal */}
@@ -534,19 +649,34 @@ const Farms: React.FC = () => {
 
       {/* Structure Modal */}
       {structureModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
-            <h2 className="text-xl font-semibold mb-4">
-              Add {structureModal.type.charAt(0).toUpperCase() + structureModal.type.slice(1)}
-            </h2>
-            <form onSubmit={handleAddStructure} className="space-y-4">
-              {structureModal.type === 'section' && !selectedFarm && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold mb-4">
+                Add {structureModal.type.charAt(0).toUpperCase() + structureModal.type.slice(1)}
+              </h2>
+              <form onSubmit={handleAddStructure} className="space-y-4">
+              {!selectedFarm && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Select Farm</label>
                   <select 
                     name="farmId" 
                     required 
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    onChange={async (e) => {
+                      const farmId = e.target.value;
+                      if (farmId && structureModal.type !== 'section') {
+                        setIsLoadingModalSections(true);
+                        try {
+                          const response = await axios.get(`${API_URL}/sections?farmId=${farmId}`);
+                          setModalSections(response.data);
+                        } catch (error) {
+                          console.error('Error loading sections:', error);
+                        } finally {
+                          setIsLoadingModalSections(false);
+                        }
+                      }
+                    }}
                   >
                     <option value="">Choose a farm</option>
                     {farms.map(farm => (
@@ -556,30 +686,55 @@ const Farms: React.FC = () => {
                 </div>
               )}
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                <input 
-                  name="name" 
-                  required 
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
-                />
-              </div>
-
               {structureModal.type === 'section' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Area (acres)</label>
-                  <input 
-                    name="area" 
-                    type="number" 
-                    step="0.1" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
-                  />
-                </div>
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input 
+                      name="name" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Area (acres)</label>
+                    <input 
+                      name="area" 
+                      type="number" 
+                      step="0.1" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
+                </>
               )}
 
               {structureModal.type === 'block' && (
                 <>
+                  {!structureModal.parentId && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Select Section</label>
+                      <select 
+                        name="sectionId" 
+                        required 
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        disabled={isLoadingModalSections}
+                      >
+                        <option value="">{isLoadingModalSections ? 'Loading...' : 'Choose a section'}</option>
+                        {modalSections.map(section => (
+                          <option key={section.id} value={section.id}>{section.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input 
+                      name="name" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Crop Type</label>
                     <input 
@@ -604,6 +759,55 @@ const Farms: React.FC = () => {
 
               {structureModal.type === 'bed' && (
                 <>
+                  {!structureModal.parentId && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Section</label>
+                        <select 
+                          name="sectionId" 
+                          required 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                          onChange={async (e) => {
+                            const sectionId = e.target.value;
+                            if (sectionId) {
+                              try {
+                                const response = await axios.get(`${API_URL}/blocks?sectionId=${sectionId}`);
+                                setModalBlocks(response.data);
+                              } catch (error) {
+                                console.error('Error loading blocks:', error);
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">Choose a section</option>
+                          {modalSections.map(section => (
+                            <option key={section.id} value={section.id}>{section.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Block</label>
+                        <select 
+                          name="blockId" 
+                          required 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="">Choose a block</option>
+                          {modalBlocks.map(block => (
+                            <option key={block.id} value={block.id}>{block.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input 
+                      name="name" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Length (m)</label>
                     <input 
@@ -628,35 +832,177 @@ const Farms: React.FC = () => {
               )}
 
               {structureModal.type === 'dripline' && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Flow Rate (L/h)</label>
-                  <input 
-                    name="flowRate" 
-                    type="number" 
-                    step="0.1" 
-                    required 
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
-                  />
-                </div>
+                <>
+                  {!structureModal.parentId && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Section</label>
+                        <select 
+                          name="sectionId" 
+                          required 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                          onChange={async (e) => {
+                            const sectionId = e.target.value;
+                            if (sectionId) {
+                              try {
+                                const response = await axios.get(`${API_URL}/blocks?sectionId=${sectionId}`);
+                                setModalBlocks(response.data);
+                              } catch (error) {
+                                console.error('Error loading blocks:', error);
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">Choose a section</option>
+                          {modalSections.map(section => (
+                            <option key={section.id} value={section.id}>{section.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Block</label>
+                        <select 
+                          name="blockId" 
+                          required 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                          onChange={async (e) => {
+                            const blockId = e.target.value;
+                            if (blockId) {
+                              try {
+                                const response = await axios.get(`${API_URL}/beds?blockId=${blockId}`);
+                                setModalBeds(response.data);
+                              } catch (error) {
+                                console.error('Error loading beds:', error);
+                              }
+                            }
+                          }}
+                        >
+                          <option value="">Choose a block</option>
+                          {modalBlocks.map(block => (
+                            <option key={block.id} value={block.id}>{block.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Select Bed</label>
+                        <select 
+                          name="bedId" 
+                          required 
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="">Choose a bed</option>
+                          {modalBeds.map(bed => (
+                            <option key={bed.id} value={bed.id}>{bed.name}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input 
+                      name="name" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Flow Rate (L/h)</label>
+                    <input 
+                      name="flowRate" 
+                      type="number" 
+                      step="0.1" 
+                      required 
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500" 
+                    />
+                  </div>
+                </>
               )}
 
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setStructureModal(null)}
-                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-                >
-                  Add {structureModal.type.charAt(0).toUpperCase() + structureModal.type.slice(1)}
-                </button>
-              </div>
-            </form>
+                <div className="flex justify-end space-x-3 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStructureModal(null);
+                      setSelectedModalFarm(null);
+                      setModalSections([]);
+                      setModalBlocks([]);
+                      setModalBeds([]);
+                    }}
+                    className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+                  >
+                    Add {structureModal.type.charAt(0).toUpperCase() + structureModal.type.slice(1)}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const FarmStructureView: React.FC<{ farm: Farm; setSelectedFarm: (farm: Farm) => void; setEditingFarm: (farm: Farm) => void; handleDeleteFarm: (farmId: string) => void }> = ({ farm, setSelectedFarm, setEditingFarm, handleDeleteFarm }) => {
+  const [farmSections, setFarmSections] = useState<Section[]>([]);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    if (expanded) {
+      const unsubscribe = onSnapshot(query(collection(db, 'sections'), where('farmId', '==', farm.id)), (snapshot) => {
+        const sectionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Section));
+        setFarmSections(sectionsData);
+      });
+      return () => unsubscribe();
+    }
+  }, [expanded, farm.id]);
+
+  return (
+    <div className="border rounded-lg">
+      <div className="p-4 bg-gray-50 hover:bg-gray-100">
+        <div className="flex justify-between items-center">
+          <div className="flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+            <div className="flex items-center space-x-4">
+              <span className="text-xs text-gray-500">{expanded ? '▼' : '▶'}</span>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">{farm.name}</h3>
+                <p className="text-sm text-gray-500">{farm.area} acres • {farm.soilType} soil</p>
+              </div>
+              <div className="flex space-x-4 ml-auto">
+                <span className={`text-sm ${getSoilHealthColor(farm.soilHealth.ph)}`}>pH: {farm.soilHealth.ph}</span>
+                <span className="text-sm text-blue-600">{farm.soilHealth.moisture}%</span>
+                <span className="text-sm text-orange-600">{farm.soilHealth.temperature}°C</span>
+              </div>
+            </div>
+          </div>
+          <div className="flex space-x-2 ml-4">
+            <button onClick={() => setSelectedFarm(farm)} className="text-blue-600 hover:text-blue-900">
+              <Edit className="h-4 w-4" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }} className="text-green-600 hover:text-green-900">
+              <Edit className="h-4 w-4" />
+            </button>
+            <button onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }} className="text-red-600 hover:text-red-900">
+              <Trash2 className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      </div>
+      {expanded && (
+        <div className="p-4 space-y-2">
+          {farmSections.length === 0 ? (
+            <p className="text-sm text-gray-500">No sections in this farm</p>
+          ) : (
+            farmSections.map(section => (
+              <SectionView key={section.id} section={section} loadBlocks={() => {}} loadBeds={() => {}} loadDriplines={() => {}} setStructureModal={() => {}} />
+            ))
+          )}
         </div>
       )}
     </div>
@@ -688,31 +1034,22 @@ const SectionView: React.FC<{ section: Section; loadBlocks: any; loadBeds: any; 
   };
 
   return (
-    <div className="border rounded-lg">
-      <div className="p-3 bg-gray-50 hover:bg-gray-100">
-        <div className="flex justify-between items-center">
-          <div className="flex-1 cursor-pointer" onClick={handleToggleExpand}>
-            <span className="font-medium">{section.name}</span>
-            <span className="text-sm text-gray-500 ml-2">({section.area} acres)</span>
-            <span className="text-xs text-gray-500 ml-2">{expanded ? '▼' : '▶'}</span>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); setStructureModal({ type: 'block', parentId: section.id }); }}
-              className="flex items-center px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add Block
-            </button>
+    <div className="border rounded-lg bg-blue-50">
+      <div className="p-3 cursor-pointer hover:bg-blue-100" onClick={handleToggleExpand}>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <span className="text-blue-600">{expanded ? '▼' : '▶'}</span>
+            <span className="font-semibold text-blue-900">{section.name}</span>
+            <span className="text-sm text-blue-600">({section.area} acres)</span>
           </div>
         </div>
       </div>
       {expanded && (
-        <div className="p-3 space-y-2">
+        <div className="p-3 bg-white space-y-2">
           {isLoadingBlocks ? (
-            <p className="text-sm text-gray-500">Loading blocks...</p>
+            <p className="text-sm text-gray-500">Loading...</p>
           ) : blocks.length === 0 ? (
-            <p className="text-sm text-gray-500">No blocks in this section</p>
+            <p className="text-sm text-gray-500">No blocks</p>
           ) : (
             blocks.map(block => <BlockView key={block.id} block={block} loadBeds={loadBeds} loadDriplines={loadDriplines} setStructureModal={setStructureModal} />)
           )}
@@ -747,31 +1084,20 @@ const BlockView: React.FC<{ block: Block; loadBeds: any; loadDriplines: any; set
   };
 
   return (
-    <div className="border-l-2 border-blue-300 pl-4">
-      <div className="p-2 bg-blue-50 rounded hover:bg-blue-100">
-        <div className="flex justify-between items-center">
-          <div className="flex-1 cursor-pointer" onClick={handleToggleExpand}>
-            <span className="font-medium text-sm">{block.name}</span>
-            <span className="text-xs text-gray-600 ml-2">• {block.cropType}</span>
-            <span className="text-xs ml-2">{expanded ? '▼' : '▶'}</span>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={(e) => { e.stopPropagation(); setStructureModal({ type: 'bed', parentId: block.id }); }}
-              className="flex items-center px-2 py-1 bg-yellow-600 text-white rounded text-xs hover:bg-yellow-700"
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              Add Bed
-            </button>
-          </div>
+    <div className="ml-4 border-l-2 border-purple-300 pl-3">
+      <div className="p-2 bg-purple-50 rounded hover:bg-purple-100 cursor-pointer" onClick={handleToggleExpand}>
+        <div className="flex items-center space-x-2">
+          <span className="text-purple-600 text-xs">{expanded ? '▼' : '▶'}</span>
+          <span className="font-medium text-sm text-purple-900">{block.name}</span>
+          <span className="text-xs text-purple-600">• {block.cropType}</span>
         </div>
       </div>
       {expanded && (
-        <div className="mt-2 space-y-2">
+        <div className="mt-2 ml-4 space-y-2">
           {isLoadingBeds ? (
-            <p className="text-xs text-gray-500">Loading beds...</p>
+            <p className="text-xs text-gray-500">Loading...</p>
           ) : beds.length === 0 ? (
-            <p className="text-xs text-gray-500">No beds in this block</p>
+            <p className="text-xs text-gray-500">No beds</p>
           ) : (
             beds.map(bed => <BedView key={bed.id} bed={bed} loadDriplines={loadDriplines} setStructureModal={setStructureModal} />)
           )}
@@ -792,35 +1118,28 @@ const BedView: React.FC<{ bed: Bed; loadDriplines: any; setStructureModal: (moda
   }, [expanded, bed.id]);
 
   return (
-    <div className="border-l-2 border-green-300 pl-4">
-      <div className="p-2 bg-green-50 rounded hover:bg-green-100">
-        <div className="flex justify-between items-center">
-          <div className="flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-            <span className="font-medium text-sm">{bed.name}</span>
-            <span className="text-xs text-gray-600 ml-2">• {bed.length}m × {bed.width}m</span>
-            <span className="text-xs ml-2">{expanded ? '▼' : '▶'}</span>
-          </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); setStructureModal({ type: 'dripline', parentId: bed.id }); }}
-            className="flex items-center px-2 py-1 bg-purple-600 text-white rounded text-xs hover:bg-purple-700"
-          >
-            <Plus className="h-3 w-3 mr-1" />
-            Add Drip Line
-          </button>
+    <div className="border-l-2 border-green-400 pl-3">
+      <div className="p-2 bg-green-50 rounded hover:bg-green-100 cursor-pointer" onClick={() => setExpanded(!expanded)}>
+        <div className="flex items-center space-x-2">
+          <span className="text-green-600 text-xs">{expanded ? '▼' : '▶'}</span>
+          <span className="font-medium text-sm text-green-900">{bed.name}</span>
+          <span className="text-xs text-green-600">{bed.length}m × {bed.width}m</span>
         </div>
       </div>
       {expanded && (
-        <div className="mt-2 space-y-1">
+        <div className="mt-2 ml-4 space-y-1">
           {driplines.length === 0 ? (
-            <p className="text-xs text-gray-500">No drip lines in this bed</p>
+            <p className="text-xs text-gray-500">No drip lines</p>
           ) : (
             driplines.map(drip => (
-              <div key={drip.id} className="p-2 bg-gray-50 rounded text-xs">
+              <div key={drip.id} className="p-2 bg-gray-50 rounded text-xs flex items-center justify-between">
                 <span className="font-medium">{drip.name}</span>
-                <span className="text-gray-600 ml-2">• {drip.flowRate} L/h</span>
-                <span className={`ml-2 px-2 py-0.5 rounded ${drip.status === 'working' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                  {drip.status}
-                </span>
+                <div className="flex items-center space-x-2">
+                  <span className="text-gray-600">{drip.flowRate} L/h</span>
+                  <span className={`px-2 py-0.5 rounded text-xs ${drip.status === 'working' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                    {drip.status}
+                  </span>
+                </div>
               </div>
             ))
           )}

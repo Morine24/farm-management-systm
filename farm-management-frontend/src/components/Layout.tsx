@@ -11,12 +11,12 @@ import {
   Users,
   Menu, 
   X,
-  Bell,
   LogOut,
   Briefcase,
   
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
+import MaintenanceNotifications from './MaintenanceNotifications';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -142,9 +142,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </h2>
             </div>
             <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-400 hover:text-gray-500">
-                <Bell className="h-5 w-5" />
-              </button>
+              <MaintenanceNotifications />
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
                   <span className="text-sm font-medium text-white">

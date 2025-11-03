@@ -1,7 +1,28 @@
 const express = require('express');
 const router = express.Router();
 
-// Get all blocks for a section
+// Get blocks (with optional sectionId query parameter)
+router.get('/', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const { sectionId } = req.query;
+    
+    if (sectionId) {
+      const snapshot = await db.collection('blocks').where('sectionId', '==', sectionId).get();
+      const blocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return res.json(blocks);
+    }
+    
+    // Return all blocks if no sectionId specified
+    const snapshot = await db.collection('blocks').get();
+    const blocks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(blocks);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all blocks for a section (legacy endpoint)
 router.get('/section/:sectionId', async (req, res) => {
   try {
     const db = req.app.get('db');

@@ -1,7 +1,28 @@
 const express = require('express');
 const router = express.Router();
 
-// Get all beds for a block
+// Get beds (with optional blockId query parameter)
+router.get('/', async (req, res) => {
+  try {
+    const db = req.app.get('db');
+    const { blockId } = req.query;
+    
+    if (blockId) {
+      const snapshot = await db.collection('beds').where('blockId', '==', blockId).get();
+      const beds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      return res.json(beds);
+    }
+    
+    // Return all beds if no blockId specified
+    const snapshot = await db.collection('beds').get();
+    const beds = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    res.json(beds);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+});
+
+// Get all beds for a block (legacy endpoint)
 router.get('/block/:blockId', async (req, res) => {
   try {
     const db = req.app.get('db');

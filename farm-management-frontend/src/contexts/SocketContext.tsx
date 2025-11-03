@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useRef } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 interface SocketContextType {
@@ -12,31 +12,34 @@ export const useSocket = () => useContext(SocketContext);
 let socket: Socket | null = null;
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const initialized = useRef(false);
+
   useEffect(() => {
-    if (!socket) {
-      socket = io('http://localhost:5001', {
-        transports: ['websocket'],
-        autoConnect: true,
-      });
+    if (!initialized.current) {
+      initialized.current = true;
+      
+      if (!socket) {
+        socket = io('http://localhost:5001', {
+          transports: ['websocket', 'polling'],
+          autoConnect: true,
+          reconnection: true,
+          reconnectionDelay: 1000,
+          reconnectionAttempts: 5,
+        });
 
-      socket.on('connect', () => {
-        console.log('Socket connected:', socket?.id);
-      });
+        socket.on('connect', () => {
+          console.log('Socket connected:', socket?.id);
+        });
 
-      socket.on('disconnect', () => {
-        console.log('Socket disconnected');
-      });
+        socket.on('disconnect', () => {
+          console.log('Socket disconnected');
+        });
 
-      socket.on('error', (error) => {
-        console.error('Socket error:', error);
-      });
-    }
-
-    return () => {
-      if (socket) {
-        socket.disconnect();
+        socket.on('connect_error', (error) => {
+          console.error('Socket connection error:', error.message);
+        });
       }
-    };
+    }
   }, []);
 
   return (
