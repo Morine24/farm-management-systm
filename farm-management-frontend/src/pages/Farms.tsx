@@ -1,12 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Droplets, ThermometerSun, ArrowLeft, Layers, Map, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Droplets, ThermometerSun, ArrowLeft, Layers, Calendar, TrendingUp } from 'lucide-react';
 import { db } from '../config/firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
-import { MapContainer, TileLayer, Polygon, useMapEvents } from 'react-leaflet';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import 'leaflet/dist/leaflet.css';
 
 interface Farm {
   id: string;
@@ -402,11 +400,10 @@ const Farms: React.FC = () => {
     }
   };
 
-  const [activeTab, setActiveTab] = useState<'overview' | 'map' | 'operations' | 'health'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'operations' | 'health'>('overview');
   const [showOperationModal, setShowOperationModal] = useState(false);
   const [operations, setOperations] = useState<any[]>([]);
   const [soilHealthHistory, setSoilHealthHistory] = useState<any[]>([]);
-  const [mapCoordinates, setMapCoordinates] = useState<[number, number][]>([]);
 
   useEffect(() => {
     if (selectedFarm) {
@@ -440,7 +437,7 @@ const Farms: React.FC = () => {
 
         <div className="border-b bg-white">
           <div className="flex space-x-1 px-4">
-            {[{ id: 'overview', label: 'Overview', icon: Layers }, { id: 'map', label: 'Map', icon: Map }, { id: 'operations', label: 'Operations', icon: Calendar }, { id: 'health', label: 'Soil Health', icon: TrendingUp }].map(tab => (
+            {[{ id: 'overview', label: 'Overview', icon: Layers }, { id: 'operations', label: 'Operations', icon: Calendar }, { id: 'health', label: 'Soil Health', icon: TrendingUp }].map(tab => (
               <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-3 font-medium text-sm flex items-center space-x-2 border-b-2 ${activeTab === tab.id ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                 <tab.icon className="h-4 w-4" /><span>{tab.label}</span>
               </button>
@@ -485,20 +482,6 @@ const Farms: React.FC = () => {
                 </div>
               </div>
             </>
-          )}
-
-          {activeTab === 'map' && (
-            <div className="bg-white rounded-lg shadow-sm border p-4">
-              <h2 className="text-lg font-semibold mb-4">Field Boundaries</h2>
-              <div className="h-96 rounded-lg overflow-hidden border">
-                <MapContainer center={(selectedFarm.coordinates[0] as [number, number]) || [0, 0]} zoom={15} style={{ height: '100%', width: '100%' }}>
-                  <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-                  {selectedFarm.coordinates.length > 2 && <Polygon positions={selectedFarm.coordinates as [number, number][]} pathOptions={{ color: 'green', fillColor: 'lightgreen' }} />}
-                  <MapClickHandler setCoordinates={setMapCoordinates} farmId={selectedFarm.id} />
-                </MapContainer>
-              </div>
-              <p className="text-sm text-gray-500 mt-2">Click on map to set boundaries. Coordinates will be saved automatically.</p>
-            </div>
           )}
 
           {activeTab === 'operations' && (
@@ -1080,20 +1063,6 @@ const Farms: React.FC = () => {
       })()}
     </div>
   );
-};
-
-const MapClickHandler: React.FC<{ setCoordinates: (coords: [number, number][]) => void; farmId: string }> = ({ setCoordinates, farmId }) => {
-  const [points, setPoints] = useState<[number, number][]>([]);
-  useMapEvents({
-    click: async (e) => {
-      const newPoints = [...points, [e.latlng.lat, e.latlng.lng] as [number, number]];
-      setPoints(newPoints);
-      setCoordinates(newPoints);
-      const { updateDoc } = await import('firebase/firestore');
-      await updateDoc(doc(db, 'farms', farmId), { coordinates: newPoints });
-    }
-  });
-  return null;
 };
 
 const FarmStructureView: React.FC<{ farm: Farm; setSelectedFarm: (farm: Farm) => void; setEditingFarm: (farm: Farm) => void; handleDeleteFarm: (farmId: string) => void }> = ({ farm, setSelectedFarm, setEditingFarm, handleDeleteFarm }) => {
