@@ -16,6 +16,7 @@ import Financial from './pages/Financial';
 import Weather from './pages/Weather';
 import Users from './pages/Users';
 import Labour from './pages/Labour';
+import InstallPWA from './components/InstallPWA';
 
 const AppRoutes: React.FC = () => {
   const { user, isWorker, isFinancialManager } = useUser();
@@ -64,6 +65,7 @@ function App() {
       <SocketProvider>
         <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
           <AppRoutes />
+          <InstallPWA />
         </Router>
       </SocketProvider>
     </UserProvider>
