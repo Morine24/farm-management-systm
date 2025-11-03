@@ -14,6 +14,13 @@ interface Task {
   dueDate: Date;
   status: 'pending' | 'in_progress' | 'completed' | 'overdue';
   priority: 'low' | 'medium' | 'high';
+  assignedWorker?: string;
+  assignedWorkerName?: string;
+  estimatedHours?: number;
+  hourlyRate?: number;
+  labourCost?: number;
+  actualHours?: number;
+  actualCost?: number;
 }
 
 interface User {
@@ -30,14 +37,21 @@ const Tasks: React.FC = () => {
   const [filter, setFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
+  const [farms, setFarms] = useState<any[]>([]);
   const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
+    farmId: '',
+    farmName: '',
     type: '',
     assignedTo: '',
     dueDate: '',
-    priority: 'medium' as 'low' | 'medium' | 'high'
+    priority: 'medium' as 'low' | 'medium' | 'high',
+    estimatedHours: 0,
+    hourlyRate: 0
   });
+  const [workers, setWorkers] = useState<any[]>([]);
+  const [showLabourModal, setShowLabourModal] = useState(false);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [completionData, setCompletionData] = useState({ actualHours: 0, actualCost: 0 });
 
   useEffect(() => {
     const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -57,11 +71,34 @@ const Tasks: React.FC = () => {
       setUsers(usersData.filter(user => user.status === 'active'));
     });
 
+    const unsubscribeFarms = onSnapshot(collection(db, 'farms'), (snapshot) => {
+      const farmsData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setFarms(farmsData);
+    });
+
+    fetchWorkers();
+
     return () => {
       unsubscribeTasks();
       unsubscribeUsers();
+      unsubscribeFarms();
     };
   }, []);
+
+  const fetchWorkers = async () => {
+    try {
+      const response = await fetch('/api/labour/workers');
+      if (response.ok) {
+        const data = await response.json();
+        setWorkers(Array.isArray(data) ? data : []);
+      }
+    } catch (error) {
+      console.error('Failed to fetch workers:', error);
+    }
+  };
 
   useEffect(() => {
     filterTasks();
@@ -70,13 +107,17 @@ const Tasks: React.FC = () => {
   const handleAddTask = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const labourCost = newTask.estimatedHours * newTask.hourlyRate;
       await addDoc(collection(db, 'tasks'), {
         ...newTask,
         dueDate: new Date(newTask.dueDate),
         status: 'pending',
+        labourCost,
+        actualHours: 0,
+        actualCost: 0,
         createdAt: new Date()
       });
-      setNewTask({ title: '', description: '', type: '', assignedTo: '', dueDate: '', priority: 'medium' });
+      setNewTask({ farmId: '', farmName: '', type: '', assignedTo: '', dueDate: '', priority: 'medium', estimatedHours: 0, hourlyRate: 0 });
       setShowAddModal(false);
     } catch (error) {
       console.error('Error adding task:', error);
@@ -94,9 +135,33 @@ const Tasks: React.FC = () => {
   const updateTaskStatus = async (taskId: string, status: string) => {
     try {
       const { updateDoc, doc } = await import('firebase/firestore');
-      await updateDoc(doc(db, 'tasks', taskId), { status });
+      if (status === 'completed') {
+        const task = tasks.find(t => t.id === taskId);
+        setSelectedTask(task || null);
+        setCompletionData({ actualHours: task?.estimatedHours || 0, actualCost: task?.labourCost || 0 });
+        setShowLabourModal(true);
+      } else {
+        await updateDoc(doc(db, 'tasks', taskId), { status });
+      }
     } catch (error) {
       console.error('Failed to update task:', error);
+    }
+  };
+
+  const completeTask = async () => {
+    if (!selectedTask) return;
+    try {
+      const { updateDoc, doc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'tasks', selectedTask.id), { 
+        status: 'completed',
+        actualHours: completionData.actualHours,
+        actualCost: completionData.actualCost,
+        completedDate: new Date()
+      });
+      setShowLabourModal(false);
+      setSelectedTask(null);
+    } catch (error) {
+      console.error('Failed to complete task:', error);
     }
   };
 
@@ -188,6 +253,8 @@ const Tasks: React.FC = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Est. Hours</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Labour Cost</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -199,10 +266,7 @@ const Tasks: React.FC = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <span className="text-2xl mr-2">{getTaskIcon(task.type)}</span>
-                      <div>
-                        <div className="font-medium text-gray-900">{task.title}</div>
-                        <div className="text-sm text-gray-500">{task.description}</div>
-                      </div>
+                      <div className="font-medium text-gray-900">{task.type}</div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
@@ -219,6 +283,12 @@ const Tasks: React.FC = () => {
                       <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-900">{format(new Date(task.dueDate), 'MMM dd, yyyy')}</span>
                     </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm text-gray-900">{task.estimatedHours || 0}h</span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className="text-sm font-medium text-gray-900">${(task.labourCost || 0).toFixed(2)}</span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
@@ -274,23 +344,23 @@ const Tasks: React.FC = () => {
             <form onSubmit={handleAddTask}>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Title</label>
-                  <input
-                    type="text"
-                    value={newTask.title}
-                    onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
+                  <select
+                    value={newTask.farmId}
+                    onChange={(e) => {
+                      const farm = farms.find(f => f.id === e.target.value);
+                      setNewTask({ ...newTask, farmId: e.target.value, farmName: farm?.name || '' });
+                    }}
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-                  <textarea
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
+                  >
+                    <option value="">Select farm</option>
+                    {farms.map((farm) => (
+                      <option key={farm.id} value={farm.id}>
+                        {farm.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
@@ -348,6 +418,37 @@ const Tasks: React.FC = () => {
                     <option value="high">High</option>
                   </select>
                 </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Estimated Hours</label>
+                    <input
+                      type="number"
+                      value={newTask.estimatedHours}
+                      onChange={(e) => setNewTask({ ...newTask, estimatedHours: parseFloat(e.target.value) || 0 })}
+                      min="0"
+                      step="0.5"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Hourly Rate ($)</label>
+                    <input
+                      type="number"
+                      value={newTask.hourlyRate}
+                      onChange={(e) => setNewTask({ ...newTask, hourlyRate: parseFloat(e.target.value) || 0 })}
+                      min="0"
+                      step="0.01"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    />
+                  </div>
+                </div>
+                {newTask.estimatedHours > 0 && newTask.hourlyRate > 0 && (
+                  <div className="bg-blue-50 p-3 rounded-lg">
+                    <p className="text-sm text-gray-700">
+                      Estimated Labour Cost: <span className="font-bold text-blue-600">${(newTask.estimatedHours * newTask.hourlyRate).toFixed(2)}</span>
+                    </p>
+                  </div>
+                )}
               </div>
               <div className="flex justify-end space-x-3 mt-6">
                 <button
@@ -365,6 +466,74 @@ const Tasks: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Complete Task with Labour Cost Modal */}
+      {showLabourModal && selectedTask && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md mx-4">
+            <h2 className="text-xl font-semibold mb-4">Complete Task - Labour Details</h2>
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-600">Task: <span className="font-medium text-gray-900">{selectedTask.type}</span></p>
+                <p className="text-sm text-gray-600">Estimated: <span className="font-medium">{selectedTask.estimatedHours}h @ ${selectedTask.hourlyRate}/h = ${selectedTask.labourCost?.toFixed(2)}</span></p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Actual Hours Worked</label>
+                <input
+                  type="number"
+                  value={completionData.actualHours}
+                  onChange={(e) => {
+                    const hours = parseFloat(e.target.value) || 0;
+                    setCompletionData({ 
+                      actualHours: hours, 
+                      actualCost: hours * (selectedTask.hourlyRate || 0) 
+                    });
+                  }}
+                  min="0"
+                  step="0.5"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Actual Labour Cost ($)</label>
+                <input
+                  type="number"
+                  value={completionData.actualCost}
+                  onChange={(e) => setCompletionData({ ...completionData, actualCost: parseFloat(e.target.value) || 0 })}
+                  min="0"
+                  step="0.01"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                />
+              </div>
+              <div className="bg-blue-50 p-3 rounded-lg">
+                <p className="text-sm text-gray-700">
+                  Variance: <span className={`font-bold ${(completionData.actualCost - (selectedTask.labourCost || 0)) > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    ${Math.abs(completionData.actualCost - (selectedTask.labourCost || 0)).toFixed(2)} 
+                    {(completionData.actualCost - (selectedTask.labourCost || 0)) > 0 ? ' over' : ' under'} budget
+                  </span>
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowLabourModal(false);
+                  setSelectedTask(null);
+                }}
+                className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={completeTask}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+              >
+                Complete Task
+              </button>
+            </div>
           </div>
         </div>
       )}

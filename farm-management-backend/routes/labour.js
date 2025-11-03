@@ -33,13 +33,13 @@ router.post('/workers', async (req, res) => {
 router.post('/checkin', async (req, res) => {
   try {
     const db = req.app.get('db');
-    const { workerId, workerName, workerType, fieldId, fieldName } = req.body;
+    const { workerId, workerName, workerType, farmId, farmName } = req.body;
     const checkinData = {
       workerId,
       workerName,
       workerType,
-      fieldId,
-      fieldName,
+      farmId,
+      farmName,
       checkInTime: new Date(),
       checkOutTime: null,
       status: 'checked_in'
@@ -104,11 +104,11 @@ router.post('/', async (req, res) => {
     const db = req.app.get('db');
     const recordData = { ...req.body, createdAt: new Date() };
     
-    // If fieldId is provided, get field name
-    if (recordData.fieldId) {
-      const fieldDoc = await db.collection('fields').doc(recordData.fieldId).get();
-      if (fieldDoc.exists) {
-        recordData.fieldName = fieldDoc.data().name;
+    // If farmId is provided, get farm name
+    if (recordData.farmId) {
+      const farmDoc = await db.collection('farms').doc(recordData.farmId).get();
+      if (farmDoc.exists) {
+        recordData.farmName = farmDoc.data().name;
       }
     }
     

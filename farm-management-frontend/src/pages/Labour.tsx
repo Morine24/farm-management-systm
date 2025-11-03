@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, DollarSign, Clock, Calendar } from 'lucide-react';
+import { Users, Plus, DollarSign, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { collection, onSnapshot } from 'firebase/firestore';
+import { db } from '../config/firebase';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface LabourRecord {
   id: string;
@@ -9,12 +12,12 @@ interface LabourRecord {
   ratePerHour: number;
   totalPay: number;
   date: Date;
-  fieldId?: string;
-  fieldName?: string;
+  farmId?: string;
+  farmName?: string;
   status: 'pending' | 'paid';
 }
 
-interface Field {
+interface Farm {
   id: string;
   name: string;
 }
@@ -32,8 +35,8 @@ interface Attendance {
   workerId: string;
   workerName: string;
   workerType: string;
-  fieldId?: string;
-  fieldName?: string;
+  farmId?: string;
+  farmName?: string;
   checkInTime: Date;
   checkOutTime?: Date;
   hoursWorked?: number;
@@ -42,19 +45,32 @@ interface Attendance {
 
 const Labour: React.FC = () => {
   const [records, setRecords] = useState<LabourRecord[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
+  const [farms, setFarms] = useState<Farm[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [activeCheckins, setActiveCheckins] = useState<Attendance[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'records' | 'attendance' | 'workers'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler'>('attendance');
+  const [tasks, setTasks] = useState<any[]>([]);
+  const [selectedWeek, setSelectedWeek] = useState(new Date());
 
   useEffect(() => {
     fetchLabourRecords();
-    fetchFields();
+    fetchFarms();
     fetchWorkers();
     fetchActiveCheckins();
+    
+    const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      const tasksData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        dueDate: doc.data().dueDate?.toDate() || new Date()
+      }));
+      setTasks(tasksData);
+    });
+
+    return () => unsubscribeTasks();
   }, []);
 
   const fetchLabourRecords = async () => {
@@ -69,15 +85,15 @@ const Labour: React.FC = () => {
     }
   };
 
-  const fetchFields = async () => {
+  const fetchFarms = async () => {
     try {
-      const response = await fetch('/api/fields');
+      const response = await fetch('/api/farms');
       if (response.ok) {
         const data = await response.json();
-        setFields(Array.isArray(data) ? data : []);
+        setFarms(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error('Failed to fetch fields:', error);
+      console.error('Failed to fetch farms:', error);
     }
   };
 
@@ -124,14 +140,26 @@ const Labour: React.FC = () => {
 
   const markAsPaid = async (id: string) => {
     try {
-      const response = await fetch(`/api/labour/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'paid' })
+      const { updateDoc, doc, addDoc, collection } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      
+      const record = records.find(r => r.id === id);
+      if (!record) return;
+      
+      await updateDoc(doc(db, 'labour', id), { status: 'paid' });
+      
+      // Auto-create financial expense record
+      await addDoc(collection(db, 'transactions'), {
+        type: 'expense',
+        category: 'Labour Cost',
+        amount: record.totalPay,
+        description: `${record.workerName} - ${record.workType} (${record.hoursWorked}h)`,
+        date: new Date(),
+        farmId: record.farmId || null,
+        farmName: record.farmName || 'General'
       });
-      if (response.ok) {
-        fetchLabourRecords();
-      }
+      
+      fetchLabourRecords();
     } catch (error) {
       console.error('Failed to update status:', error);
     }
@@ -199,6 +227,16 @@ const Labour: React.FC = () => {
           >
             Workers
           </button>
+          <button
+            onClick={() => setActiveTab('scheduler')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+              activeTab === 'scheduler'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Task Scheduler
+          </button>
         </nav>
       </div>
 
@@ -257,7 +295,7 @@ const Labour: React.FC = () => {
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Worker Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-in Time</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
@@ -279,7 +317,7 @@ const Labour: React.FC = () => {
                           {checkin.workerType}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{checkin.fieldName || 'General'}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{checkin.farmName || 'General'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{checkInTime.toLocaleTimeString()}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{duration}h</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -336,6 +374,130 @@ const Labour: React.FC = () => {
         </div>
       )}
 
+      {/* Task Scheduler */}
+      {activeTab === 'scheduler' && (() => {
+        const weekStart = new Date(selectedWeek);
+        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekEnd.getDate() + 7);
+
+        const weekTasks = tasks.filter(task => {
+          const taskDate = new Date(task.dueDate);
+          return taskDate >= weekStart && taskDate < weekEnd;
+        });
+
+        const totalEstimatedCost = weekTasks.reduce((sum, t) => sum + (t.labourCost || 0), 0);
+        const totalEstimatedHours = weekTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0);
+        const completedTasks = weekTasks.filter(t => t.status === 'completed');
+        const totalActualCost = completedTasks.reduce((sum, t) => sum + (t.actualCost || 0), 0);
+
+        const workerSchedule = workers.map(worker => {
+          const workerTasks = weekTasks.filter(t => t.assignedTo === worker.name);
+          const totalHours = workerTasks.reduce((sum, t) => sum + (t.estimatedHours || 0), 0);
+          const totalCost = workerTasks.reduce((sum, t) => sum + (t.labourCost || 0), 0);
+          return { worker, tasks: workerTasks, totalHours, totalCost };
+        });
+
+        return (
+          <>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-lg font-semibold text-gray-900">Weekly Task Schedule</h2>
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={() => {
+                    const newDate = new Date(selectedWeek);
+                    newDate.setDate(newDate.getDate() - 7);
+                    setSelectedWeek(newDate);
+                  }}
+                  className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  ← Previous
+                </button>
+                <span className="font-medium">{selectedWeek.toLocaleDateString()}</span>
+                <button
+                  onClick={() => {
+                    const newDate = new Date(selectedWeek);
+                    newDate.setDate(newDate.getDate() + 7);
+                    setSelectedWeek(newDate);
+                  }}
+                  className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
+                >
+                  Next →
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <Calendar className="h-8 w-8 text-blue-600 mb-2" />
+                <p className="text-sm text-gray-600">Scheduled Tasks</p>
+                <p className="text-2xl font-bold text-gray-900">{weekTasks.length}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <Clock className="h-8 w-8 text-green-600 mb-2" />
+                <p className="text-sm text-gray-600">Est. Hours</p>
+                <p className="text-2xl font-bold text-gray-900">{totalEstimatedHours.toFixed(1)}h</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <DollarSign className="h-8 w-8 text-yellow-600 mb-2" />
+                <p className="text-sm text-gray-600">Est. Cost</p>
+                <p className="text-2xl font-bold text-gray-900">${totalEstimatedCost.toFixed(2)}</p>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
+                <p className="text-sm text-gray-600">Actual Cost</p>
+                <p className="text-2xl font-bold text-gray-900">${totalActualCost.toFixed(2)}</p>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-lg shadow p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Worker Schedule & Costs</h3>
+              <div className="space-y-4">
+                {workerSchedule.map(({ worker, tasks: workerTasks, totalHours, totalCost }) => (
+                  <div key={worker.id} className="border rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-3">
+                      <div>
+                        <h4 className="font-semibold text-gray-900">{worker.name}</h4>
+                        <p className="text-sm text-gray-600">{worker.type} • ${worker.ratePerHour}/hour</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm text-gray-600">Total: <span className="font-medium">{totalHours.toFixed(1)}h</span></p>
+                        <p className="text-sm text-gray-600">Cost: <span className="font-medium text-green-600">${totalCost.toFixed(2)}</span></p>
+                      </div>
+                    </div>
+                    {workerTasks.length > 0 ? (
+                      <div className="space-y-2">
+                        {workerTasks.map(task => (
+                          <div key={task.id} className="flex justify-between items-center bg-gray-50 p-3 rounded">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{task.type}</p>
+                              <p className="text-xs text-gray-600">{task.farmName} • {new Date(task.dueDate).toLocaleDateString()}</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm text-gray-900">{task.estimatedHours}h</p>
+                              <p className="text-xs text-gray-600">${(task.labourCost || 0).toFixed(2)}</p>
+                              <span className={`text-xs px-2 py-1 rounded-full ${
+                                task.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
+                                'bg-yellow-100 text-yellow-800'
+                              }`}>
+                                {task.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 text-center py-2">No tasks scheduled</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        );
+      })()}
+
       {/* Labour Records Table */}
       {activeTab === 'records' && (
       <div className="bg-white rounded-lg shadow">
@@ -348,7 +510,7 @@ const Labour: React.FC = () => {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Worker Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Work Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Field</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate/Hour</th>
@@ -366,7 +528,7 @@ const Labour: React.FC = () => {
                   <tr key={record.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{record.workerName}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.workType}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.fieldName || 'General'}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.farmName || 'General'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{date.toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.hoursWorked}h</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.ratePerHour}</td>
@@ -407,8 +569,8 @@ const Labour: React.FC = () => {
               const formData = new FormData(e.target as HTMLFormElement);
               const hoursWorked = parseFloat(formData.get('hoursWorked') as string);
               const ratePerHour = parseFloat(formData.get('ratePerHour') as string);
-              const fieldId = formData.get('fieldId') as string;
-              const selectedField = fields.find(f => f.id === fieldId);
+              const farmId = formData.get('farmId') as string;
+              const selectedFarm = farms.find(f => f.id === farmId);
               
               const recordData = {
                 workerName: formData.get('workerName') as string,
@@ -417,8 +579,8 @@ const Labour: React.FC = () => {
                 ratePerHour,
                 totalPay: hoursWorked * ratePerHour,
                 date: new Date(formData.get('date') as string),
-                fieldId: fieldId || undefined,
-                fieldName: selectedField?.name || undefined,
+                farmId: farmId || undefined,
+                farmName: selectedFarm?.name || undefined,
                 status: 'pending'
               };
               
@@ -440,12 +602,16 @@ const Labour: React.FC = () => {
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Worker Name</label>
-                  <input
-                    type="text"
+                  <select
                     name="workerName"
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
+                  >
+                    <option value="">Select worker</option>
+                    {workers.map(worker => (
+                      <option key={worker.id} value={worker.name}>{worker.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
@@ -464,14 +630,14 @@ const Labour: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
                   <select
-                    name="fieldId"
+                    name="farmId"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="">General (Not field-specific)</option>
-                    {fields.map(field => (
-                      <option key={field.id} value={field.id}>{field.name}</option>
+                    <option value="">General (Not farm-specific)</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
                   </select>
                 </div>
@@ -631,15 +797,15 @@ const Labour: React.FC = () => {
               const formData = new FormData(e.target as HTMLFormElement);
               const workerId = formData.get('workerId') as string;
               const selectedWorker = workers.find(w => w.id === workerId);
-              const fieldId = formData.get('fieldId') as string;
-              const selectedField = fields.find(f => f.id === fieldId);
+              const farmId = formData.get('farmId') as string;
+              const selectedFarm = farms.find(f => f.id === farmId);
               
               const checkinData = {
                 workerId,
                 workerName: selectedWorker?.name,
                 workerType: selectedWorker?.type,
-                fieldId: fieldId || undefined,
-                fieldName: selectedField?.name || undefined
+                farmId: farmId || undefined,
+                farmName: selectedFarm?.name || undefined
               };
               
               try {
@@ -674,14 +840,14 @@ const Labour: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Field (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
                   <select
-                    name="fieldId"
+                    name="farmId"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">General</option>
-                    {fields.map(field => (
-                      <option key={field.id} value={field.id}>{field.name}</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
                   </select>
                 </div>

@@ -13,10 +13,11 @@ import {
   X,
   LogOut,
   Briefcase,
-  
+  Calendar
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import MaintenanceNotifications from './MaintenanceNotifications';
+import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -38,7 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     if (isFinancialManager) {
       return [
         ...baseNav,
-        { name: 'Financial', href: '/financial', icon: DollarSign },
+        { name: 'Finance', href: '/financial', icon: DollarSign },
         { name: 'Inventory', href: '/inventory', icon: Package },
       ];
     }
@@ -50,7 +51,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: 'Crops', href: '/crops', icon: Wheat },
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Inventory', href: '/inventory', icon: Package },
-        { name: 'Financial', href: '/financial', icon: DollarSign },
+        { name: 'Finance', href: '/financial', icon: DollarSign },
         { name: 'Labour', href: '/labour', icon: Briefcase },
         { name: 'Weather', href: '/weather', icon: Cloud },
         { name: 'Users', href: '/users', icon: Users },
@@ -142,6 +143,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </h2>
             </div>
             <div className="flex items-center space-x-4">
+              <NotificationCenter />
               <MaintenanceNotifications />
               <div className="flex items-center space-x-2">
                 <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">

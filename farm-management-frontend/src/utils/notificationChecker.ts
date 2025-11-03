@@ -1,13 +1,17 @@
 import { generateMaintenanceSchedule } from './cropDatabase';
 
 export interface MaintenanceNotification {
-  cropId: string;
-  cropVariety: string;
-  farmName: string;
+  id?: string;
+  cropId?: string;
+  cropVariety?: string;
+  farmName?: string;
   taskType: string;
   taskDate: string;
   daysUntil: number;
   pesticides?: string[];
+  assignedTo?: string;
+  priority?: string;
+  read?: boolean;
 }
 
 export const checkUpcomingTasks = (crops: any[]): MaintenanceNotification[] => {

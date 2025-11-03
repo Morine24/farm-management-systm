@@ -15,7 +15,7 @@ interface InventoryItem {
   fieldName?: string;
 }
 
-interface Field {
+interface Farm {
   id: string;
   name: string;
 }
@@ -23,14 +23,14 @@ interface Field {
 const Inventory: React.FC = () => {
   const [items, setItems] = useState<InventoryItem[]>([]);
   const [filteredItems, setFilteredItems] = useState<InventoryItem[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
+  const [farms, setFarms] = useState<Farm[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
 
   useEffect(() => {
     fetchInventory();
-    fetchFields();
+    fetchFarms();
   }, []);
 
   useEffect(() => {
@@ -52,15 +52,16 @@ const Inventory: React.FC = () => {
     }
   };
 
-  const fetchFields = async () => {
+  const fetchFarms = async () => {
     try {
-      const response = await fetch('/api/fields');
-      if (response.ok) {
-        const data = await response.json();
-        setFields(Array.isArray(data) ? data : []);
-      }
+      const { collection, onSnapshot } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      onSnapshot(collection(db, 'farms'), (snapshot) => {
+        const farmsData = snapshot.docs.map(doc => ({ id: doc.id, name: doc.data().name }));
+        setFarms(farmsData);
+      });
     } catch (error) {
-      console.error('Failed to fetch fields:', error);
+      console.error('Failed to fetch farms:', error);
     }
   };
 
@@ -279,8 +280,8 @@ const Inventory: React.FC = () => {
             <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.target as HTMLFormElement);
-              const fieldId = formData.get('fieldId') as string;
-              const selectedField = fields.find(f => f.id === fieldId);
+              const farmId = formData.get('farmId') as string;
+              const selectedFarm = farms.find(f => f.id === farmId);
               const itemData = {
                 name: formData.get('name') as string,
                 category: formData.get('category') as string,
@@ -290,23 +291,30 @@ const Inventory: React.FC = () => {
                 supplier: formData.get('supplier') as string,
                 lowStockThreshold: parseInt(formData.get('lowStockThreshold') as string),
                 expiryDate: formData.get('expiryDate') ? new Date(formData.get('expiryDate') as string) : undefined,
-                fieldId: fieldId || undefined,
-                fieldName: selectedField?.name || undefined
+                fieldId: farmId || undefined,
+                fieldName: selectedFarm?.name || undefined
               };
               
               try {
-                const response = await fetch('/api/inventory', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(itemData)
+                const { addDoc, collection } = await import('firebase/firestore');
+                const { db } = await import('../config/firebase');
+                
+                await addDoc(collection(db, 'inventory'), itemData);
+                
+                // Auto-create financial expense record
+                const totalCost = itemData.quantity * itemData.costPerUnit;
+                await addDoc(collection(db, 'transactions'), {
+                  type: 'expense',
+                  category: 'Inventory Purchase',
+                  amount: totalCost,
+                  description: `${itemData.name} - ${itemData.quantity} ${itemData.unit}`,
+                  date: new Date(),
+                  farmId: itemData.fieldId || null,
+                  farmName: itemData.fieldName || 'General'
                 });
                 
-                if (response.ok) {
-                  setShowAddModal(false);
-                  fetchInventory();
-                } else {
-                  console.error('Failed to add item');
-                }
+                setShowAddModal(false);
+                fetchInventory();
               } catch (error) {
                 console.error('Error adding item:', error);
               }
@@ -379,14 +387,14 @@ const Inventory: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Field (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
                   <select
-                    name="fieldId"
+                    name="farmId"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">General Inventory</option>
-                    {fields.map(field => (
-                      <option key={field.id} value={field.id}>{field.name}</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
                   </select>
                 </div>

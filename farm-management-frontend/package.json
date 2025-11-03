@@ -4,7 +4,6 @@
   "description": "React frontend for farm management system",
   "private": true,
   "dependencies": {
-    "@types/leaflet": "^1.9.8",
     "@types/node": "^16.18.68",
     "@types/react": "^18.2.45",
     "@types/react-dom": "^18.2.18",
@@ -51,5 +50,8 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "http://localhost:5001"
+  "proxy": "http://localhost:5001",
+  "devDependencies": {
+    "@types/leaflet": "^1.9.21"
+  }
 }

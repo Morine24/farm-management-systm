@@ -52,6 +52,7 @@ app.use('/api/weather', require('./routes/weather'));
 app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/labour', require('./routes/labour'));
+app.use('/api/notifications', require('./routes/notifications'));
 
 // Socket.io for real-time updates
 io.on('connection', (socket) => {
