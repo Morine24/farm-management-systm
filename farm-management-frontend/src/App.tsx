@@ -1,5 +1,22 @@
 import React, { ErrorInfo, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { UserProvider, useUser } from './contexts/UserContext';
+import { SocketProvider } from './contexts/SocketContext';
+import Layout from './components/Layout';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import WorkerDashboard from './pages/WorkerDashboard';
+import FinancialDashboard from './pages/FinancialDashboard';
+import Farms from './pages/Farms';
+import AddSection from './pages/AddSection';
+import Crops from './pages/Crops';
+import Tasks from './pages/Tasks';
+import Inventory from './pages/Inventory';
+import Financial from './pages/Financial';
+import Weather from './pages/Weather';
+import Users from './pages/Users';
+import Labour from './pages/Labour';
+import InstallPWA from './components/InstallPWA';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: {children: React.ReactNode}) {
@@ -34,23 +51,6 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: bo
     return this.props.children;
   }
 }
-import { UserProvider, useUser } from './contexts/UserContext';
-import { SocketProvider } from './contexts/SocketContext';
-import Layout from './components/Layout';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import WorkerDashboard from './pages/WorkerDashboard';
-import FinancialDashboard from './pages/FinancialDashboard';
-import Farms from './pages/Farms';
-import AddSection from './pages/AddSection';
-import Crops from './pages/Crops';
-import Tasks from './pages/Tasks';
-import Inventory from './pages/Inventory';
-import Financial from './pages/Financial';
-import Weather from './pages/Weather';
-import Users from './pages/Users';
-import Labour from './pages/Labour';
-import InstallPWA from './components/InstallPWA';
 
 const AppRoutes: React.FC = () => {
   const { user, isWorker, isFinancialManager } = useUser();
