@@ -1,5 +1,39 @@
-import React from 'react';
+import React, { ErrorInfo, Component } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+
+class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): {hasError: boolean} {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    console.error('App Error:', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen flex items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <h1 className="text-2xl font-bold text-gray-900 mb-4">Something went wrong</h1>
+            <button 
+              onClick={() => window.location.reload()} 
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            >
+              Reload Page
+            </button>
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import { UserProvider, useUser } from './contexts/UserContext';
 import { SocketProvider } from './contexts/SocketContext';
 import Layout from './components/Layout';
@@ -20,6 +54,24 @@ import InstallPWA from './components/InstallPWA';
 
 const AppRoutes: React.FC = () => {
   const { user, isWorker, isFinancialManager } = useUser();
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    // Simulate app initialization
+    const timer = setTimeout(() => setIsLoading(false), 1000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading Farm Manager...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!user) {
     return <Login />;
@@ -61,14 +113,16 @@ const AppRoutes: React.FC = () => {
 
 function App() {
   return (
-    <UserProvider>
-      <SocketProvider>
-        <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-          <AppRoutes />
-          <InstallPWA />
-        </Router>
-      </SocketProvider>
-    </UserProvider>
+    <ErrorBoundary>
+      <UserProvider>
+        <SocketProvider>
+          <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+            <AppRoutes />
+            <InstallPWA />
+          </Router>
+        </SocketProvider>
+      </UserProvider>
+    </ErrorBoundary>
   );
 }
 
