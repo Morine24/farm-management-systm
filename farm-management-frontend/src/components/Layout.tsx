@@ -17,7 +17,6 @@ import {
   Download
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
-import MaintenanceNotifications from './MaintenanceNotifications';
 import NotificationCenter from './NotificationCenter';
 
 interface LayoutProps {
@@ -40,14 +39,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     return () => window.removeEventListener('beforeinstallprompt', handler);
   }, []);
 
-  const handleInstall = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setDeferredPrompt(null);
-    }
-  };
+
 
   const getNavigation = () => {
     const baseNav = [{ name: 'Dashboard', href: '/', icon: Home }];
@@ -163,17 +155,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
               </h2>
             </div>
             <div className="flex items-center space-x-2 sm:space-x-4">
-              {deferredPrompt && (
-                <button
-                  onClick={handleInstall}
-                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                  title="Install App"
-                >
-                  <Download className="h-5 w-5" />
-                </button>
-              )}
+
               <NotificationCenter />
-              <MaintenanceNotifications />
               <div className="flex items-center space-x-1 sm:space-x-2">
                 <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
                   <span className="text-sm font-medium text-white">

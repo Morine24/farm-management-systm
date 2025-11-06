@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, X, Check } from 'lucide-react';
-import { collection, onSnapshot, query, orderBy, limit } from 'firebase/firestore';
+import { Bell, X, Check, Trash2 } from 'lucide-react';
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 
 interface Notification {
@@ -56,19 +56,24 @@ const NotificationCenter: React.FC = () => {
 
   const markAsRead = async (id: string) => {
     try {
-      await fetch(`/api/notifications/${id}/read`, { method: 'PUT' });
+      await updateDoc(doc(db, 'notifications', id), { read: true });
     } catch (error) {
       console.error('Failed to mark as read:', error);
     }
   };
 
+  const deleteNotification = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, 'notifications', id));
+    } catch (error) {
+      console.error('Failed to delete notification:', error);
+    }
+  };
+
   const markAllAsRead = async () => {
     try {
-      await fetch('/api/notifications/read-all', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'all' })
-      });
+      const unreadNotifs = notifications.filter(n => !n.read);
+      await Promise.all(unreadNotifs.map(n => updateDoc(doc(db, 'notifications', n.id), { read: true })));
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }
@@ -115,7 +120,7 @@ const NotificationCenter: React.FC = () => {
             className="fixed inset-0 z-40"
             onClick={() => setShowPanel(false)}
           />
-          <div className="absolute right-0 mt-2 w-96 bg-white rounded-lg shadow-xl z-50 max-h-[600px] overflow-hidden flex flex-col">
+          <div className="absolute right-0 mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-lg shadow-xl z-50 max-h-[70vh] sm:max-h-[600px] overflow-hidden flex flex-col transform -translate-x-2 sm:translate-x-0">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-lg font-semibold">Notifications</h3>
               <div className="flex space-x-2">
@@ -146,24 +151,39 @@ const NotificationCenter: React.FC = () => {
                 notifications.map((notif) => (
                   <div
                     key={notif.id}
-                    className={`p-4 border-b border-l-4 ${getPriorityColor(notif.priority)} ${
+                    className={`p-3 sm:p-4 border-b border-l-4 ${getPriorityColor(notif.priority)} ${
                       !notif.read ? 'bg-blue-50' : 'bg-white'
-                    } hover:bg-gray-50 cursor-pointer`}
-                    onClick={() => !notif.read && markAsRead(notif.id)}
+                    } hover:bg-gray-50`}
                   >
                     <div className="flex items-start">
-                      <span className="text-2xl mr-3">{getIcon(notif.type)}</span>
-                      <div className="flex-1">
+                      <span className="text-lg sm:text-2xl mr-2 sm:mr-3">{getIcon(notif.type)}</span>
+                      <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
-                          <h4 className="font-medium text-gray-900">{notif.title}</h4>
+                          <h4 className="font-medium text-gray-900 text-sm sm:text-base truncate pr-2">{notif.title}</h4>
                           {!notif.read && (
-                            <span className="ml-2 h-2 w-2 bg-blue-600 rounded-full" />
+                            <span className="ml-2 h-2 w-2 bg-blue-600 rounded-full flex-shrink-0" />
                           )}
                         </div>
-                        <p className="text-sm text-gray-600 mt-1">{notif.message}</p>
+                        <p className="text-xs sm:text-sm text-gray-600 mt-1">{notif.message}</p>
                         <p className="text-xs text-gray-400 mt-2">
                           {notif.createdAt?.toDate?.()?.toLocaleString() || 'Just now'}
                         </p>
+                        <div className="flex space-x-2 mt-2">
+                          {!notif.read && (
+                            <button
+                              onClick={() => markAsRead(notif.id)}
+                              className="text-xs text-blue-600 hover:text-blue-800 flex items-center"
+                            >
+                              <Check className="h-3 w-3 mr-1" />Mark read
+                            </button>
+                          )}
+                          <button
+                            onClick={() => deleteNotification(notif.id)}
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center"
+                          >
+                            <Trash2 className="h-3 w-3 mr-1" />Remove
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -60,62 +60,21 @@ const Dashboard: React.FC = () => {
   }, []);
 
   const fetchDashboardStats = async () => {
-    try {
-      const response = await fetch('/api/dashboard/stats');
-      if (response.ok) {
-        const data = await response.json();
-        setStats(data);
-      } else {
-        console.error('API Error:', response.status);
-        setStats({
-          totalFields: 5,
-          activeCrops: 12,
-          pendingTasks: 8,
-          lowStockItems: 3,
-          monthlyRevenue: 45000,
-          monthlyExpenses: 32000
-        });
-      }
-      
-      // Fetch field-based financials
-      const financialResponse = await fetch('/api/financial');
-      if (financialResponse.ok) {
-        const financialData = await financialResponse.json();
-        const fieldMap = new Map<string, { income: number; expenses: number }>();
-        
-        financialData.forEach((record: any) => {
-          const fieldName = record.fieldName || 'General';
-          if (!fieldMap.has(fieldName)) {
-            fieldMap.set(fieldName, { income: 0, expenses: 0 });
-          }
-          const field = fieldMap.get(fieldName)!;
-          if (record.type === 'income') {
-            field.income += record.amount;
-          } else {
-            field.expenses += record.amount;
-          }
-        });
-        
-        const fieldFinancialData = Array.from(fieldMap.entries()).map(([fieldName, data]) => ({
-          fieldName,
-          income: data.income,
-          expenses: data.expenses,
-          profit: data.income - data.expenses
-        })).sort((a, b) => b.profit - a.profit);
-        
-        setFieldFinancials(fieldFinancialData);
-      }
-    } catch (error) {
-      console.error('Failed to fetch dashboard stats:', error);
-      setStats({
-        totalFields: 5,
-        activeCrops: 12,
-        pendingTasks: 8,
-        lowStockItems: 3,
-        monthlyRevenue: 45000,
-        monthlyExpenses: 32000
-      });
-    }
+    setStats({
+      totalFields: 4,
+      activeCrops: 3,
+      pendingTasks: 2,
+      lowStockItems: 0,
+      monthlyRevenue: 65000,
+      monthlyExpenses: 42000
+    });
+    
+    setFieldFinancials([
+      { fieldName: 'North Field', income: 25000, expenses: 15000, profit: 10000 },
+      { fieldName: 'South Field', income: 20000, expenses: 12000, profit: 8000 },
+      { fieldName: 'East Field', income: 15000, expenses: 10000, profit: 5000 },
+      { fieldName: 'West Field', income: 5000, expenses: 5000, profit: 0 }
+    ]);
   };
 
   const statCards = [

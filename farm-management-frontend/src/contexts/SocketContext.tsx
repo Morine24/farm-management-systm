@@ -19,12 +19,16 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       initialized.current = true;
       
       if (!socket) {
-        socket = io('http://localhost:5001', {
+        const socketUrl = process.env.NODE_ENV === 'production' 
+          ? window.location.origin.replace(':3000', ':5000')
+          : 'http://localhost:5001';
+        
+        socket = io(socketUrl, {
           transports: ['websocket', 'polling'],
           autoConnect: true,
           reconnection: true,
-          reconnectionDelay: 1000,
-          reconnectionAttempts: 5,
+          reconnectionDelay: 2000,
+          reconnectionAttempts: 3,
         });
 
         socket.on('connect', () => {
@@ -36,7 +40,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         });
 
         socket.on('connect_error', (error) => {
-          console.error('Socket connection error:', error.message);
+          console.warn('Socket connection failed - real-time features disabled:', error.message);
         });
       }
     }
