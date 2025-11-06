@@ -2,7 +2,6 @@
   "name": "farm-management-frontend",
   "version": "1.0.0",
   "description": "React frontend for farm management system",
-  "homepage": ".",
   "private": true,
   "dependencies": {
     "@types/node": "^16.18.68",
