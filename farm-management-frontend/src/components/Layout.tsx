@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home, 
@@ -13,7 +13,8 @@ import {
   X,
   LogOut,
   Briefcase,
-  Calendar
+  Calendar,
+  Download
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import MaintenanceNotifications from './MaintenanceNotifications';
@@ -25,9 +26,28 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUser, isManager, isWorker, isFinancialManager } = useUser();
+
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredPrompt(e);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstall = async () => {
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    const { outcome } = await deferredPrompt.userChoice;
+    if (outcome === 'accepted') {
+      setDeferredPrompt(null);
+    }
+  };
 
   const getNavigation = () => {
     const baseNav = [{ name: 'Dashboard', href: '/', icon: Home }];
@@ -136,22 +156,31 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           >
             <Menu className="h-6 w-6" />
           </button>
-          <div className="flex flex-1 justify-between px-4">
+          <div className="flex flex-1 justify-between px-2 sm:px-4">
             <div className="flex items-center">
-              <h2 className="text-lg font-semibold text-gray-900">
+              <h2 className="text-base sm:text-lg font-semibold text-gray-900 truncate">
                 {navigation.find(item => item.href === location.pathname)?.name || 'Dashboard'}
               </h2>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
+              {deferredPrompt && (
+                <button
+                  onClick={handleInstall}
+                  className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
+                  title="Install App"
+                >
+                  <Download className="h-5 w-5" />
+                </button>
+              )}
               <NotificationCenter />
               <MaintenanceNotifications />
-              <div className="flex items-center space-x-2">
+              <div className="flex items-center space-x-1 sm:space-x-2">
                 <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
                   <span className="text-sm font-medium text-white">
                     {user?.name?.charAt(0) || 'U'}
                   </span>
                 </div>
-                <span className="text-sm text-gray-700">{user?.name}</span>
+                <span className="hidden sm:inline text-sm text-gray-700">{user?.name}</span>
                 <button
                   onClick={() => {
                     setUser(null);

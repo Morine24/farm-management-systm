@@ -537,48 +537,48 @@ const Farms: React.FC = () => {
     <div className="h-screen flex flex-col">
       <Toaster position="top-center" reverseOrder={false} />
       
-      <div className="flex justify-between items-center p-6 border-b bg-white shadow-sm">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Farm Manager</h1>
-          <p className="text-gray-600 mt-1">Manage your farms, sections, blocks, and beds</p>
+      <div className="p-4 md:p-6 border-b bg-white shadow-sm">
+        <div className="mb-4">
+          <h1 className="text-xl md:text-3xl font-bold text-gray-900">Farm Manager</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Manage your farms, sections, blocks, and beds</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2">
           <button 
             onClick={() => setShowAddModal(true)} 
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            className="flex items-center px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />Add Farm
+            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Farm
           </button>
           <button 
             onClick={() => setStructureModal({ type: 'section', parentId: '' })} 
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
+            className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />Add Section
+            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Section
           </button>
           <button 
             onClick={() => setStructureModal({ type: 'block', parentId: '' })} 
-            className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
+            className="flex items-center px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />Add Block
+            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Block
           </button>
           <button 
             onClick={() => setStructureModal({ type: 'bed', parentId: '' })} 
-            className="flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-sm"
+            className="flex items-center px-3 py-2 text-sm bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />Add Bed
+            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Bed
           </button>
           <button 
             onClick={() => setStructureModal({ type: 'dripline', parentId: '' })} 
-            className="flex items-center px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
+            className="flex items-center px-3 py-2 text-sm bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors shadow-sm"
           >
-            <Plus className="h-4 w-4 mr-2" />Add Dripline
+            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Dripline
           </button>
         </div>
       </div>
 
-      <div className="flex-1 p-6 overflow-y-auto">
+      <div className="flex-1 p-4 md:p-6 overflow-y-auto">
         <div className="mb-6">
-          <h2 className="text-xl font-semibold mb-4">Farms</h2>
+          <h2 className="text-lg md:text-xl font-semibold mb-4">Farms</h2>
           {farms.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">No farms yet. Create your first farm to get started.</p>
@@ -591,7 +591,7 @@ const Farms: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {farms.map(farm => (
                 <div 
                   key={farm.id}
@@ -599,7 +599,7 @@ const Farms: React.FC = () => {
                   className="bg-gradient-to-br from-green-400 to-green-600 rounded-lg p-4 cursor-pointer hover:from-green-500 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg text-white"
                 >
                   <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-lg font-bold truncate">{farm.name}</h3>
+                    <h3 className="text-base md:text-lg font-bold truncate flex-1 mr-2">{farm.name}</h3>
                     <div className="flex space-x-1">
                       <button 
                         onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }}

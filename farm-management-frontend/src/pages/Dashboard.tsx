@@ -191,9 +191,9 @@ const Dashboard: React.FC = () => {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Revenue Chart */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Revenue vs Expenses</h3>
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 space-y-2 sm:space-y-0">
+            <h3 className="text-base md:text-lg font-semibold text-gray-900">Revenue vs Expenses</h3>
             <div className="flex items-center space-x-2">
               <TrendingUp className="h-5 w-5 text-green-500" />
               <span className="text-sm text-green-600">+12% this month</span>
@@ -212,8 +212,8 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Crop Distribution */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Crop Distribution</h3>
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Crop Distribution</h3>
           <ResponsiveContainer width="100%" height={300}>
             <PieChart>
               <Pie
@@ -235,20 +235,20 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Financial Summary */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center p-4 bg-green-50 rounded-lg">
-            <p className="text-2xl font-bold text-green-600">${stats.monthlyRevenue.toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Total Income</p>
+      <div className="bg-white rounded-lg shadow p-4 md:p-6">
+        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-green-600">${stats.monthlyRevenue.toLocaleString()}</p>
+            <p className="text-xs md:text-sm text-gray-600">Total Income</p>
           </div>
-          <div className="text-center p-4 bg-red-50 rounded-lg">
-            <p className="text-2xl font-bold text-red-600">${stats.monthlyExpenses.toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Total Expenses</p>
+          <div className="text-center p-3 md:p-4 bg-red-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-red-600">${stats.monthlyExpenses.toLocaleString()}</p>
+            <p className="text-xs md:text-sm text-gray-600">Total Expenses</p>
           </div>
-          <div className="text-center p-4 bg-blue-50 rounded-lg">
-            <p className="text-2xl font-bold text-blue-600">${(stats.monthlyRevenue - stats.monthlyExpenses).toLocaleString()}</p>
-            <p className="text-sm text-gray-600">Net Profit</p>
+          <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
+            <p className="text-xl md:text-2xl font-bold text-blue-600">${(stats.monthlyRevenue - stats.monthlyExpenses).toLocaleString()}</p>
+            <p className="text-xs md:text-sm text-gray-600">Net Profit</p>
           </div>
         </div>
       </div>
@@ -256,8 +256,8 @@ const Dashboard: React.FC = () => {
       {/* Recent Activity & Field Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Recent Activity</h3>
           <div className="space-y-3">
             <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
               <MapPin className="h-5 w-5 text-green-600 mt-0.5" />
@@ -287,8 +287,8 @@ const Dashboard: React.FC = () => {
         </div>
 
         {/* Field Performance */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-lg font-semibold text-gray-900 mb-4">Field Performance</h3>
+        <div className="bg-white rounded-lg shadow p-4 md:p-6">
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Field Performance</h3>
           {fieldFinancials.length > 0 ? (
             <div className="space-y-3">
               {fieldFinancials.slice(0, 5).map((field, index) => (
