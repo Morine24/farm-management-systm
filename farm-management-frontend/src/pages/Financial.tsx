@@ -20,7 +20,7 @@ interface Field {
 
 const Financial: React.FC = () => {
   const [records, setRecords] = useState<FinancialRecord[]>([]);
-  const [fields, setFields] = useState<Field[]>([]);
+  const [farms, setFarms] = useState<Field[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [activeTab, setActiveTab] = useState<'transactions' | 'reports'>('transactions');
   const [dateRange, setDateRange] = useState('month');
@@ -36,7 +36,7 @@ const Financial: React.FC = () => {
 
   useEffect(() => {
     fetchFinancialRecords();
-    fetchFields();
+    fetchFarms();
     const end = new Date();
     const start = new Date();
     start.setMonth(start.getMonth() - 6);
@@ -69,15 +69,15 @@ const Financial: React.FC = () => {
     }
   };
 
-  const fetchFields = async () => {
+  const fetchFarms = async () => {
     try {
-      const response = await fetch('/api/fields');
+      const response = await fetch('/api/farms');
       if (response.ok) {
         const data = await response.json();
-        setFields(Array.isArray(data) ? data : []);
+        setFarms(Array.isArray(data) ? data : []);
       }
     } catch (error) {
-      console.error('Failed to fetch fields:', error);
+      console.error('Failed to fetch farms:', error);
     }
   };
 
@@ -485,7 +485,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Field</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
               </tr>
@@ -540,34 +540,32 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
             <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.target as HTMLFormElement);
-              const fieldId = formData.get('fieldId') as string;
-              const selectedField = fields.find(f => f.id === fieldId);
+              const farmId = formData.get('farmId') as string;
+              const selectedFarm = farms.find(f => f.id === farmId);
               const recordData = {
                 type: recordType,
                 category: formData.get('category') as string,
                 amount: parseFloat(formData.get('amount') as string),
                 description: formData.get('description') as string,
                 date: new Date(formData.get('date') as string),
-                fieldId: fieldId || undefined,
-                fieldName: selectedField?.name || undefined
+                fieldId: farmId || undefined,
+                fieldName: selectedFarm?.name || undefined
               };
               
               try {
-                const response = await fetch('/api/financial', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify(recordData)
-                });
+                // Use Firebase directly instead of API
+                const { addDoc, collection } = await import('firebase/firestore');
+                const { db } = await import('../config/firebase');
                 
-                if (response.ok) {
-                  setShowAddModal(false);
-                  setRecordType('expense');
-                  fetchFinancialRecords();
-                } else {
-                  console.error('Failed to add record');
-                }
+                await addDoc(collection(db, 'financial'), recordData);
+                
+                setShowAddModal(false);
+                setRecordType('expense');
+                fetchFinancialRecords();
+                alert('Financial record added successfully!');
               } catch (error) {
                 console.error('Error adding record:', error);
+                alert('Failed to add record. Please try again.');
               }
             }}>
               <div className="space-y-4">
@@ -636,14 +634,14 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                   </div>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Field</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
                   <select
-                    name="fieldId"
+                    name="farmId"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   >
-                    <option value="">General (Not field-specific)</option>
-                    {fields.map(field => (
-                      <option key={field.id} value={field.id}>{field.name}</option>
+                    <option value="">General (Not farm-specific)</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
                   </select>
                 </div>

@@ -16,6 +16,7 @@ interface User {
 const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
@@ -50,6 +51,23 @@ const Users: React.FC = () => {
       setShowAddForm(false);
     } catch (error) {
       console.error('Error adding user:', error);
+    }
+  };
+
+  const handleEditUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    try {
+      await updateDoc(doc(db, 'users', editingUser.id), {
+        name: editingUser.name,
+        email: editingUser.email,
+        role: editingUser.role,
+        phone: editingUser.phone,
+        status: editingUser.status
+      });
+      setEditingUser(null);
+    } catch (error) {
+      console.error('Error updating user:', error);
     }
   };
 
@@ -156,6 +174,63 @@ const Users: React.FC = () => {
         </div>
       )}
 
+      {editingUser && (
+        <div className="bg-white p-6 rounded-lg shadow-md">
+          <h2 className="text-lg font-semibold mb-4">Edit User</h2>
+          <form onSubmit={handleEditUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              type="text"
+              placeholder="Full Name"
+              value={editingUser.name}
+              onChange={(e) => setEditingUser({ ...editingUser, name: e.target.value })}
+              className="border rounded-lg px-3 py-2"
+              required
+            />
+            <input
+              type="email"
+              placeholder="Email"
+              value={editingUser.email}
+              onChange={(e) => setEditingUser({ ...editingUser, email: e.target.value })}
+              className="border rounded-lg px-3 py-2"
+              required
+            />
+            <input
+              type="tel"
+              placeholder="Phone Number"
+              value={editingUser.phone}
+              onChange={(e) => setEditingUser({ ...editingUser, phone: e.target.value })}
+              className="border rounded-lg px-3 py-2"
+              required
+            />
+            <select
+              value={editingUser.role}
+              onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
+              className="border rounded-lg px-3 py-2"
+            >
+              <option value="worker">Worker</option>
+              <option value="manager">Manager</option>
+              <option value="financial_manager">Financial Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+            <div className="md:col-span-2 flex gap-2">
+              <button
+                type="submit"
+                className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
+              >
+                Update User
+              </button>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
@@ -200,8 +275,11 @@ const Users: React.FC = () => {
                       >
                         {user.status === 'active' ? 'Deactivate' : 'Activate'}
                       </button>
-                      <button className="text-gray-600 hover:text-gray-900">
-                        <Eye className="h-4 w-4" />
+                      <button
+                        onClick={() => setEditingUser(user)}
+                        className="text-blue-600 hover:text-blue-900"
+                      >
+                        <Edit className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => handleDeleteUser(user.id)}
