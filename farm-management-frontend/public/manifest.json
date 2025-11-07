@@ -1,16 +1,16 @@
 {
-  "short_name": "Farm Manager",
-  "name": "Farm Management System",
-  "description": "Comprehensive farm management solution for modern farming",
+  "short_name": "CropSync",
+  "name": "CropSync - Farm Management System",
+  "description": "Synchronize your farm operations with modern technology",
   "icons": [
     {
-      "src": "icon.svg",
+      "src": "logo-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
       "purpose": "any"
     },
     {
-      "src": "icon.svg",
+      "src": "logo-icon.svg",
       "sizes": "192x192",
       "type": "image/svg+xml",
       "purpose": "maskable"

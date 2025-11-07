@@ -448,23 +448,23 @@ const Farms: React.FC = () => {
         <div className="flex-1 overflow-y-auto p-6">
           {activeTab === 'overview' && (
             <>
-              <div className="grid grid-cols-3 gap-4 mb-6">
-                <div className="bg-white p-4 rounded-lg shadow-sm border">
+              <div className="grid grid-cols-1 gap-3 mb-6">
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
                   <p className="text-xs text-gray-500 mb-1">pH Level</p>
-                  <p className={`text-2xl font-bold ${getSoilHealthColor(selectedFarm.soilHealth.ph)}`}>{selectedFarm.soilHealth.ph}</p>
+                  <p className={`text-xl font-bold ${getSoilHealthColor(selectedFarm.soilHealth.ph)}`}>{selectedFarm.soilHealth.ph}</p>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
                   <p className="text-xs text-gray-500 mb-1">Moisture</p>
                   <div className="flex items-center">
-                    <Droplets className="h-5 w-5 text-blue-500 mr-2" />
-                    <span className="text-2xl font-bold text-blue-600">{selectedFarm.soilHealth.moisture}%</span>
+                    <Droplets className="h-4 w-4 text-blue-500 mr-2" />
+                    <span className="text-xl font-bold text-blue-600">{selectedFarm.soilHealth.moisture}%</span>
                   </div>
                 </div>
-                <div className="bg-white p-4 rounded-lg shadow-sm border">
+                <div className="bg-white p-3 rounded-lg shadow-sm border">
                   <p className="text-xs text-gray-500 mb-1">Temperature</p>
                   <div className="flex items-center">
-                    <ThermometerSun className="h-5 w-5 text-orange-500 mr-2" />
-                    <span className="text-2xl font-bold text-orange-600">{selectedFarm.soilHealth.temperature}°C</span>
+                    <ThermometerSun className="h-4 w-4 text-orange-500 mr-2" />
+                    <span className="text-xl font-bold text-orange-600">{selectedFarm.soilHealth.temperature}°C</span>
                   </div>
                 </div>
               </div>
@@ -1084,13 +1084,13 @@ const FarmStructureView: React.FC<{ farm: Farm; setSelectedFarm: (farm: Farm) =>
       <div className="p-4 bg-gray-50 hover:bg-gray-100">
         <div className="flex justify-between items-center">
           <div className="flex-1 cursor-pointer" onClick={() => setExpanded(!expanded)}>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-2 sm:space-x-4">
               <span className="text-xs text-gray-500">{expanded ? '▼' : '▶'}</span>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">{farm.name}</h3>
-                <p className="text-sm text-gray-500">{farm.area} acres • {farm.soilType} soil</p>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-900 truncate">{farm.name}</h3>
+                <p className="text-xs sm:text-sm text-gray-500">{farm.area} acres • {farm.soilType} soil</p>
               </div>
-              <div className="flex space-x-4 ml-auto">
+              <div className="hidden sm:flex space-x-4">
                 <span className={`text-sm ${getSoilHealthColor(farm.soilHealth.ph)}`}>pH: {farm.soilHealth.ph}</span>
                 <span className="text-sm text-blue-600">{farm.soilHealth.moisture}%</span>
                 <span className="text-sm text-orange-600">{farm.soilHealth.temperature}°C</span>

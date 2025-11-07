@@ -120,7 +120,7 @@ const NotificationCenter: React.FC = () => {
             className="fixed inset-0 z-40"
             onClick={() => setShowPanel(false)}
           />
-          <div className="absolute right-0 mt-2 w-72 sm:w-80 md:w-96 bg-white rounded-lg shadow-xl z-50 max-h-[70vh] sm:max-h-[600px] overflow-hidden flex flex-col transform -translate-x-2 sm:translate-x-0">
+          <div className="fixed sm:absolute top-16 sm:top-auto right-2 sm:right-0 mt-0 sm:mt-2 w-[calc(100vw-1rem)] sm:w-96 bg-white rounded-lg shadow-xl z-50 max-h-[70vh] sm:max-h-[600px] overflow-hidden flex flex-col">
             <div className="p-4 border-b flex justify-between items-center">
               <h3 className="text-lg font-semibold">Notifications</h3>
               <div className="flex space-x-2">

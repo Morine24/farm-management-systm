@@ -110,8 +110,8 @@ const Login: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
           <div className="text-center mb-8">
-            <div className="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-              <Leaf className="h-8 w-8 text-green-600" />
+            <div className="mx-auto mb-4">
+              <img src="/logo-icon.svg" alt="CropSync" className="h-16 w-16 mx-auto" />
             </div>
             <h1 className="text-2xl font-bold text-gray-900">Change Password</h1>
             <p className="text-gray-600 mt-2">Please set a new password to continue</p>
@@ -169,10 +169,10 @@ const Login: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8">
         <div className="text-center mb-8">
-          <div className="mx-auto h-16 w-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
-            <Leaf className="h-8 w-8 text-green-600" />
+          <div className="mx-auto mb-4">
+            <img src="/logo-icon.svg" alt="CropSync" className="h-16 w-16 mx-auto" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Farm Manager</h1>
+          <h1 className="text-3xl font-bold text-gray-900">CropSync</h1>
           <p className="text-gray-600 mt-2">Sign in to your account</p>
         </div>
         

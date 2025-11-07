@@ -167,26 +167,26 @@ const Labour: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">Labour Management</h1>
-        <div className="flex space-x-3">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Labour Management</h1>
+        <div className="flex flex-col sm:flex-row gap-3">
           <button
             onClick={() => setShowCheckinModal(true)}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap"
           >
             <Clock className="h-4 w-4 mr-2" />
             Check In/Out
           </button>
           <button
             onClick={() => setShowWorkerModal(true)}
-            className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
           >
             <Users className="h-4 w-4 mr-2" />
             Add Worker
           </button>
           <button
             onClick={() => setShowAddModal(true)}
-            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+            className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 whitespace-nowrap"
           >
             <Plus className="h-4 w-4 mr-2" />
             Add Record

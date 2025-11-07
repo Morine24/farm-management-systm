@@ -133,14 +133,14 @@ const Crops: React.FC = () => {
   return (
     <div className="p-6">
       <Toaster />
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Crop Management</h1>
-        <div className="flex gap-3">
-          <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="px-3 py-2 border rounded-lg">
+      <div className="mb-6">
+        <h1 className="text-xl md:text-3xl font-bold mb-4">Crop Management</h1>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="px-3 py-2 border rounded-lg flex-1 sm:flex-none sm:w-48">
             <option value="">All Farms</option>
             {farms.map(farm => <option key={farm.id} value={farm.id}>{farm.name}</option>)}
           </select>
-          <button onClick={() => setShowModal(true)} className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+          <button onClick={() => setShowModal(true)} className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap">
             <Plus className="h-4 w-4 mr-2" />Add Crop
           </button>
         </div>

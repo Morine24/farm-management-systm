@@ -43,7 +43,15 @@ const Weather: React.FC = () => {
         const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
         if (forecastResponse.ok) {
           const forecastData = await forecastResponse.json();
-          setForecast(forecastData.slice(0, 5));
+          // Group by unique days and take first entry per day
+          const uniqueDays = forecastData.reduce((acc: WeatherForecast[], curr: any) => {
+            const dateStr = new Date(curr.date).toDateString();
+            if (!acc.find(item => new Date(item.date).toDateString() === dateStr)) {
+              acc.push(curr);
+            }
+            return acc;
+          }, []);
+          setForecast(uniqueDays.slice(0, 7));
         }
         setAlerts([]);
       } else {
@@ -63,6 +71,8 @@ const Weather: React.FC = () => {
           { date: new Date(Date.now() + 259200000), temperature: { min: 20, max: 27 }, conditions: 'Cloudy', precipitation: 5 },
           { date: new Date(Date.now() + 345600000), temperature: { min: 22, max: 29 }, conditions: 'Sunny', precipitation: 0 },
           { date: new Date(Date.now() + 432000000), temperature: { min: 18, max: 25 }, conditions: 'Partly Cloudy', precipitation: 2 },
+          { date: new Date(Date.now() + 518400000), temperature: { min: 21, max: 28 }, conditions: 'Sunny', precipitation: 0 },
+          { date: new Date(Date.now() + 604800000), temperature: { min: 19, max: 26 }, conditions: 'Cloudy', precipitation: 3 },
         ];
 
         setCurrentWeather(mockCurrentWeather);
@@ -211,12 +221,12 @@ const Weather: React.FC = () => {
         </div>
       </div>
 
-      {/* 5-Day Forecast */}
+      {/* 7-Day Forecast */}
       <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-xl font-semibold text-gray-900 mb-4">5-Day Forecast</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+        <h2 className="text-xl font-semibold text-gray-900 mb-4">7-Day Forecast</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-7 gap-4">
           {forecast.map((day, index) => (
-            <div key={index} className="text-center p-4 bg-gray-50 rounded-lg">
+            <div key={`${new Date(day.date).getTime()}-${index}`} className="text-center p-4 bg-gray-50 rounded-lg">
               <p className="font-medium text-gray-900 mb-2">
                 {new Date(day.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })}
               </p>

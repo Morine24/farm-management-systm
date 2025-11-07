@@ -195,11 +195,11 @@ const Tasks: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
-        <h1 className="text-2xl font-bold text-gray-900">Task Management</h1>
+      <div className="mb-6">
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Task Management</h1>
         <button
           onClick={() => setShowAddModal(true)}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 w-full sm:w-auto whitespace-nowrap"
         >
           <Plus className="h-4 w-4 mr-2" />
           Add Task
@@ -224,7 +224,7 @@ const Tasks: React.FC = () => {
       </div>
 
       {/* Task Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
           { label: 'Total Tasks', value: tasks.length, color: 'bg-blue-500' },
           { label: 'Pending', value: tasks.filter(t => t.status === 'pending').length, color: 'bg-yellow-500' },
@@ -245,66 +245,67 @@ const Tasks: React.FC = () => {
 
       {/* Tasks List */}
       <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto -mx-4 sm:mx-0">
+          <div className="inline-block min-w-full align-middle">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Assigned To</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Due Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Est. Hours</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Labour Cost</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Priority</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Task</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Type</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Assigned</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Due Date</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Est. Hours</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Labour Cost</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Priority</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Status</th>
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {filteredTasks.map((task) => (
                 <tr key={task.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="text-2xl mr-2">{getTaskIcon(task.type)}</span>
-                      <div className="font-medium text-gray-900">{task.type}</div>
+                      <span className="text-xl sm:text-2xl mr-1 sm:mr-2">{getTaskIcon(task.type)}</span>
+                      <div className="font-medium text-gray-900 text-xs sm:text-sm">{task.type}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                     <span className="text-sm text-gray-900">{task.type}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <User className="h-4 w-4 text-gray-400 mr-2" />
-                      <span className="text-sm text-gray-900">{task.assignedTo}</span>
+                      <User className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mr-1 sm:mr-2" />
+                      <span className="text-xs sm:text-sm text-gray-900 truncate max-w-[80px] sm:max-w-none">{task.assignedTo}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
                     <div className="flex items-center">
                       <Calendar className="h-4 w-4 text-gray-400 mr-2" />
                       <span className="text-sm text-gray-900">{format(new Date(task.dueDate), 'MMM dd, yyyy')}</span>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                     <span className="text-sm text-gray-900">{task.estimatedHours || 0}h</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden lg:table-cell">
                     <span className="text-sm font-medium text-gray-900">${(task.labourCost || 0).toFixed(2)}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`text-sm font-medium ${getPriorityColor(task.priority)}`}>
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden md:table-cell">
+                    <span className={`text-xs sm:text-sm font-medium ${getPriorityColor(task.priority)}`}>
                       {task.priority.toUpperCase()}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 py-1 text-xs rounded-full ${getStatusColor(task.status)}`}>
                       {task.status.replace('_', ' ')}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
                     {task.status === 'pending' && (
                       <button
                         onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                        className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200"
+                        className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs sm:text-sm"
                       >
                         Start
                       </button>
@@ -312,15 +313,14 @@ const Tasks: React.FC = () => {
                     {task.status === 'in_progress' && (
                       <button
                         onClick={() => updateTaskStatus(task.id, 'completed')}
-                        className="px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200"
+                        className="px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs sm:text-sm"
                       >
-                        Complete
+                        Done
                       </button>
                     )}
                     {task.status === 'completed' && (
                       <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-5 w-5 mr-1" />
-                        Completed
+                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
                       </div>
                     )}
                   </td>
@@ -328,6 +328,7 @@ const Tasks: React.FC = () => {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
         {filteredTasks.length === 0 && (
           <div className="text-center py-12">
