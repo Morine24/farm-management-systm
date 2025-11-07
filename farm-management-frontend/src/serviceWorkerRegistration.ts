@@ -5,6 +5,26 @@ export function register() {
         .register('/service-worker.js')
         .then((registration) => {
           console.log('SW registered:', registration);
+          
+          // Check for updates every 60 seconds
+          setInterval(() => {
+            registration.update();
+          }, 60000);
+          
+          // Listen for updates
+          registration.addEventListener('updatefound', () => {
+            const newWorker = registration.installing;
+            if (newWorker) {
+              newWorker.addEventListener('statechange', () => {
+                if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // New version available
+                  if (confirm('New version available! Reload to update?')) {
+                    window.location.reload();
+                  }
+                }
+              });
+            }
+          });
         })
         .catch((error) => {
           console.log('SW registration failed:', error);

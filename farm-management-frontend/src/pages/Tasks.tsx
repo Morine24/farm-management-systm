@@ -151,13 +151,30 @@ const Tasks: React.FC = () => {
   const completeTask = async () => {
     if (!selectedTask) return;
     try {
-      const { updateDoc, doc } = await import('firebase/firestore');
+      const { updateDoc, doc, addDoc, collection } = await import('firebase/firestore');
+      
+      // Update task status
       await updateDoc(doc(db, 'tasks', selectedTask.id), { 
         status: 'completed',
         actualHours: completionData.actualHours,
         actualCost: completionData.actualCost,
-        completedDate: new Date()
+        completedDate: new Date(),
+        isPaid: false
       });
+      
+      // Add labour cost to financial records
+      await addDoc(collection(db, 'financial'), {
+        type: 'expense',
+        category: 'Labor',
+        amount: completionData.actualCost,
+        description: `Labour cost for ${selectedTask.type} - ${selectedTask.assignedTo}`,
+        date: new Date(),
+        fieldId: undefined,
+        fieldName: undefined,
+        taskId: selectedTask.id,
+        isPaid: true
+      });
+      
       setShowLabourModal(false);
       setSelectedTask(null);
     } catch (error) {
