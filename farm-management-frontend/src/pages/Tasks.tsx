@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Clock, User, AlertCircle, CheckCircle, Plus, Filter } from 'lucide-react';
 import { format } from 'date-fns';
-import { collection, onSnapshot, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useUser } from '../contexts/UserContext';
 
 interface Task {
   id: string;
@@ -32,6 +33,7 @@ interface User {
 }
 
 const Tasks: React.FC = () => {
+  const { user, isWorker } = useUser();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState('all');
@@ -54,7 +56,13 @@ const Tasks: React.FC = () => {
   const [completionData, setCompletionData] = useState({ actualHours: 0, actualCost: 0 });
 
   useEffect(() => {
-    const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+    if (!user) return;
+
+    const tasksQuery = isWorker 
+      ? query(collection(db, 'tasks'), where('assignedTo', '==', user.name))
+      : collection(db, 'tasks');
+
+    const unsubscribeTasks = onSnapshot(tasksQuery, (snapshot) => {
       const tasksData = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data(),
@@ -86,7 +94,7 @@ const Tasks: React.FC = () => {
       unsubscribeUsers();
       unsubscribeFarms();
     };
-  }, []);
+  }, [user, isWorker]);
 
   const fetchWorkers = async () => {
     try {
@@ -213,14 +221,16 @@ const Tasks: React.FC = () => {
     <div className="space-y-6">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Task Management</h1>
-        <button
-          onClick={() => setShowAddModal(true)}
-          className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 w-full sm:w-auto whitespace-nowrap"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Task
-        </button>
+        <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">{isWorker ? 'My Tasks' : 'Task Management'}</h1>
+        {!isWorker && (
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="flex items-center justify-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 w-full sm:w-auto whitespace-nowrap"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Task
+          </button>
+        )}
       </div>
 
       {/* Filters */}

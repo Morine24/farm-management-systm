@@ -17,6 +17,7 @@ import Weather from './pages/Weather';
 import Users from './pages/Users';
 import Labour from './pages/Labour';
 import Reports from './pages/Reports';
+import Livestock from './pages/Livestock';
 import InstallPWA from './components/InstallPWA';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -89,12 +90,13 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={getDashboard()} />
         <Route path="/login" element={<Navigate to="/" replace />} />
+        <Route path="/tasks" element={<Tasks />} />
+        <Route path="/crops" element={<Crops />} />
+        <Route path="/livestock" element={<Livestock />} />
         {!isWorker && (
           <>
             <Route path="/farms" element={<Farms />} />
             <Route path="/add-section" element={<AddSection />} />
-            <Route path="/crops" element={<Crops />} />
-            <Route path="/tasks" element={<Tasks />} />
             <Route path="/weather" element={<Weather />} />
           </>
         )}
@@ -102,6 +104,9 @@ const AppRoutes: React.FC = () => {
         <Route path="/financial" element={<Financial />} />
         {!isWorker && (
           <Route path="/labour" element={<Labour />} />
+        )}
+        {!isWorker && (
+          <Route path="/livestock" element={<Livestock />} />
         )}
         {!isWorker && !isFinancialManager && (
           <Route path="/users" element={<Users />} />

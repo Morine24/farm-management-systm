@@ -15,7 +15,8 @@ import {
   Briefcase,
   Calendar,
   Download,
-  FileText
+  FileText,
+  Beef
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import NotificationCenter from './NotificationCenter';
@@ -46,7 +47,12 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     const baseNav = [{ name: 'Dashboard', href: '/', icon: Home }];
     
     if (isWorker) {
-      return baseNav;
+      return [
+        ...baseNav,
+        { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+        { name: 'Crops', href: '/crops', icon: Wheat },
+        { name: 'Livestock', href: '/livestock', icon: Beef },
+      ];
     }
     
     if (isFinancialManager) {
@@ -62,6 +68,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         ...baseNav,
         { name: 'Farms', href: '/farms', icon: Map },
         { name: 'Crops', href: '/crops', icon: Wheat },
+        { name: 'Livestock', href: '/livestock', icon: Beef },
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Inventory', href: '/inventory', icon: Package },
         { name: 'Finance', href: '/financial', icon: DollarSign },
