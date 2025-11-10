@@ -83,8 +83,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
             <div className="flex items-center space-x-2">
-              <img src="/logo-icon.svg" alt="CropSync" className="h-8 w-8" />
-              <h1 className="text-xl font-bold text-primary-600">CropSync</h1>
+              <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
+              <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
             </div>
             <button onClick={() => setSidebarOpen(false)}>
               <X className="h-6 w-6" />
@@ -118,8 +118,8 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <div className="flex h-16 items-center px-4 border-b">
             <div className="flex items-center space-x-2">
-              <img src="/logo-icon.svg" alt="CropSync" className="h-8 w-8" />
-              <h1 className="text-xl font-bold text-primary-600">CropSync</h1>
+              <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
+              <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
             </div>
           </div>
           <nav className="flex-1 px-4 py-4">
