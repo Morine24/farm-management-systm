@@ -20,8 +20,8 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       
       if (!socket) {
         const socketUrl = process.env.NODE_ENV === 'production' 
-          ? window.location.origin.replace(':3000', ':5000')
-          : 'http://localhost:5001';
+          ? window.location.origin
+          : 'http://localhost:5000';
         
         socket = io(socketUrl, {
           transports: ['websocket', 'polling'],

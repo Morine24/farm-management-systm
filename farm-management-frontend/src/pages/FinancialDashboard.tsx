@@ -147,7 +147,7 @@ const FinancialDashboard: React.FC = () => {
             <TrendingUp className="h-8 w-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Income</p>
-              <p className="text-2xl font-bold text-green-600">${totalIncome.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">KSh {totalIncome.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -157,7 +157,7 @@ const FinancialDashboard: React.FC = () => {
             <TrendingDown className="h-8 w-8 text-red-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-bold text-red-600">${totalExpenses.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-red-600">KSh {totalExpenses.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -168,7 +168,7 @@ const FinancialDashboard: React.FC = () => {
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Net Profit</p>
               <p className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${netProfit.toLocaleString()}
+                KSh {netProfit.toLocaleString()}
               </p>
             </div>
           </div>
@@ -179,7 +179,7 @@ const FinancialDashboard: React.FC = () => {
             <Users className="h-8 w-8 text-blue-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Labour Costs</p>
-              <p className="text-2xl font-bold text-blue-600">${totalLabourCost.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-blue-600">KSh {totalLabourCost.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -189,7 +189,7 @@ const FinancialDashboard: React.FC = () => {
             <Package className="h-8 w-8 text-purple-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Inventory Value</p>
-              <p className="text-2xl font-bold text-purple-600">${totalInventoryValue.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-purple-600">KSh {totalInventoryValue.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -199,7 +199,7 @@ const FinancialDashboard: React.FC = () => {
             <Briefcase className="h-8 w-8 text-orange-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-2xl font-bold text-orange-600">${(totalExpenses + totalLabourCost).toLocaleString()}</p>
+              <p className="text-2xl font-bold text-orange-600">KSh {(totalExpenses + totalLabourCost).toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -283,7 +283,7 @@ const FinancialDashboard: React.FC = () => {
           <div className="p-4 bg-purple-50 rounded-lg">
             <p className="text-sm text-gray-600">Avg Cost/Task</p>
             <p className="text-2xl font-bold text-purple-600">
-              ${tasks.length > 0 ? (totalLabourCost / tasks.length).toFixed(2) : 0}
+              KSh {tasks.length > 0 ? (totalLabourCost / tasks.length).toFixed(2) : 0}
             </p>
           </div>
           <div className="p-4 bg-orange-50 rounded-lg">
@@ -303,7 +303,7 @@ const FinancialDashboard: React.FC = () => {
                   <p className="text-xs text-gray-500">{task.assignedTo || 'Unassigned'}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-gray-900">${(task.actualCost || task.labourCost || 0).toFixed(2)}</p>
+                  <p className="text-sm font-bold text-gray-900">KSh {(task.actualCost || task.labourCost || 0).toFixed(2)}</p>
                   <p className="text-xs text-gray-500">{task.status}</p>
                 </div>
               </div>
@@ -353,7 +353,7 @@ const FinancialDashboard: React.FC = () => {
                   <td className={`px-6 py-4 whitespace-nowrap text-sm font-medium ${
                     record.type === 'income' ? 'text-green-600' : 'text-red-600'
                   }`}>
-                    {record.type === 'income' ? '+' : '-'}${record.amount.toLocaleString()}
+                    {record.type === 'income' ? '+' : '-'}KSh {record.amount.toLocaleString()}
                   </td>
                 </tr>
               ))}
