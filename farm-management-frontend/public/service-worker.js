@@ -1,10 +1,9 @@
-const CACHE_NAME = 'farm-manager-v1';
+const CACHE_NAME = 'farm-manager-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png'
+  '/loosian-logo.jpg'
 ];
 
 self.addEventListener('install', (event) => {

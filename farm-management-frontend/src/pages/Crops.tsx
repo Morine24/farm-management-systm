@@ -219,11 +219,13 @@ const Crops: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Crop Variety</label>
-                <select 
+                <input
+                  list="crop-list"
                   name="variety" 
                   defaultValue={editingCrop?.variety}
                   required 
                   className="w-full px-3 py-2 border rounded-lg"
+                  placeholder="Select or type crop name"
                   onChange={(e) => {
                     setSelectedCrop(e.target.value);
                     if (plantingDate && e.target.value) {
@@ -231,10 +233,10 @@ const Crops: React.FC = () => {
                       setAutoHarvestDate(harvestDate);
                     }
                   }}
-                >
-                  <option value="">Select Crop</option>
-                  {getCropList().map(crop => <option key={crop} value={crop}>{crop}</option>)}
-                </select>
+                />
+                <datalist id="crop-list">
+                  {getCropList().map(crop => <option key={crop} value={crop} />)}
+                </datalist>
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Section</label>
@@ -359,6 +361,11 @@ const Crops: React.FC = () => {
               </div>
               
               <div className="border-t pt-4">
+                <div className="bg-green-50 p-4 rounded-lg mb-4">
+                  <h3 className="font-semibold text-green-900 mb-1">Expected Harvest Date</h3>
+                  <p className="text-2xl font-bold text-green-700">{new Date(viewingCrop.harvestDate).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                  <p className="text-sm text-green-600 mt-1">{Math.ceil((new Date(viewingCrop.harvestDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))} days remaining</p>
+                </div>
                 <h3 className="font-semibold mb-3">Detailed Maintenance Schedule</h3>
                 <div className="space-y-3">
                   {(() => {
@@ -393,6 +400,18 @@ const Crops: React.FC = () => {
                               {task.pesticides.map((pesticide: string, pIdx: number) => (
                                 <span key={pIdx} className="text-xs bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
                                   {pesticide}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {task.type === 'Fertilizer' && (task as any).fertilizers && (
+                          <div className="mt-2 pt-2 border-t border-gray-200">
+                            <p className="text-xs font-medium text-gray-600 mb-1">Recommended Fertilizers:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {(task as any).fertilizers.map((fertilizer: string, fIdx: number) => (
+                                <span key={fIdx} className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded">
+                                  {fertilizer}
                                 </span>
                               ))}
                             </div>

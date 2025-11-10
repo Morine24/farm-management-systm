@@ -5,6 +5,7 @@ export interface CropData {
   wateringFrequency: number;
   weedingFrequency: number;
   fertilizerSchedule: number[];
+  fertilizers: string[];
   pestControlFrequency: number;
   pesticides: string[];
   yieldPerAcre: number;
@@ -20,6 +21,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 7,
     weedingFrequency: 21,
     fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 23-23-0', 'Urea (46-0-0)', 'DAP (18-46-0)'],
     pestControlFrequency: 14,
     pesticides: ['Cypermethrin', 'Lambda-cyhalothrin', 'Imidacloprid'],
     yieldPerAcre: 2500,
@@ -33,6 +35,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 12,
     weedingFrequency: 21,
     fertilizerSchedule: [28, 56],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)', 'NPK 12-32-16'],
     pestControlFrequency: 21,
     pesticides: ['Mancozeb', 'Propiconazole', 'Chlorpyrifos'],
     yieldPerAcre: 2000,
@@ -46,6 +49,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 3,
     weedingFrequency: 14,
     fertilizerSchedule: [14, 35, 56],
+    fertilizers: ['Urea (46-0-0)', 'NPK 17-17-17', 'Potash (0-0-60)'],
     pestControlFrequency: 10,
     pesticides: ['Carbofuran', 'Fipronil', 'Tricyclazole'],
     yieldPerAcre: 3000,
@@ -59,6 +63,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 6,
     weedingFrequency: 14,
     fertilizerSchedule: [14, 35],
+    fertilizers: ['DAP (18-46-0)', 'NPK 10-26-26', 'Potash (0-0-60)'],
     pestControlFrequency: 10,
     pesticides: ['Chlorpyrifos', 'Quinalphos', 'Thiamethoxam'],
     yieldPerAcre: 1800,
@@ -72,6 +77,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 5,
     weedingFrequency: 14,
     fertilizerSchedule: [14, 35],
+    fertilizers: ['DAP (18-46-0)', 'NPK 10-26-26'],
     pestControlFrequency: 10,
     pesticides: ['Dimethoate', 'Malathion', 'Cypermethrin'],
     yieldPerAcre: 1500,
@@ -85,6 +91,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 1,
     weedingFrequency: 7,
     fertilizerSchedule: [14, 28, 42, 56],
+    fertilizers: ['NPK 19-19-19', 'Calcium Nitrate', 'Potash (0-0-60)'],
     pestControlFrequency: 7,
     pesticides: ['Mancozeb', 'Chlorothalonil', 'Imidacloprid', 'Abamectin'],
     yieldPerAcre: 8000,
@@ -98,6 +105,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 5,
     weedingFrequency: 14,
     fertilizerSchedule: [21, 42],
+    fertilizers: ['NPK 17-17-17', 'Urea (46-0-0)', 'Potash (0-0-60)'],
     pestControlFrequency: 10,
     pesticides: ['Mancozeb', 'Metalaxyl', 'Imidacloprid'],
     yieldPerAcre: 6000,
@@ -111,6 +119,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 4,
     weedingFrequency: 14,
     fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 19-19-19', 'Urea (46-0-0)', 'Potash (0-0-60)'],
     pestControlFrequency: 14,
     pesticides: ['Mancozeb', 'Chlorpyrifos', 'Thiamethoxam'],
     yieldPerAcre: 5000,
@@ -124,6 +133,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 3,
     weedingFrequency: 10,
     fertilizerSchedule: [14, 35, 49],
+    fertilizers: ['NPK 17-17-17', 'Urea (46-0-0)', 'Calcium Nitrate'],
     pestControlFrequency: 7,
     pesticides: ['Cypermethrin', 'Chlorpyrifos', 'Bacillus thuringiensis'],
     yieldPerAcre: 7000,
@@ -137,6 +147,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 3,
     weedingFrequency: 10,
     fertilizerSchedule: [21, 42],
+    fertilizers: ['NPK 10-26-26', 'Potash (0-0-60)'],
     pestControlFrequency: 14,
     pesticides: ['Chlorpyrifos', 'Malathion'],
     yieldPerAcre: 4500,
@@ -150,6 +161,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 10,
     weedingFrequency: 21,
     fertilizerSchedule: [28, 56, 84],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)', 'Potash (0-0-60)'],
     pestControlFrequency: 10,
     pesticides: ['Cypermethrin', 'Imidacloprid', 'Profenofos'],
     yieldPerAcre: 800,
@@ -163,6 +175,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 7,
     weedingFrequency: 28,
     fertilizerSchedule: [30, 60, 90, 120],
+    fertilizers: ['Urea (46-0-0)', 'NPK 17-17-17', 'Potash (0-0-60)'],
     pestControlFrequency: 21,
     pesticides: ['Chlorpyrifos', 'Imidacloprid', 'Carbofuran'],
     yieldPerAcre: 35000,
@@ -176,6 +189,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 7,
     weedingFrequency: 28,
     fertilizerSchedule: [60, 120, 180],
+    fertilizers: ['NPK 17-17-17', 'Organic Compost', 'Potash (0-0-60)'],
     pestControlFrequency: 21,
     pesticides: ['Copper oxychloride', 'Imidacloprid', 'Chlorpyrifos'],
     yieldPerAcre: 1200,
@@ -189,6 +203,7 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 5,
     weedingFrequency: 21,
     fertilizerSchedule: [45, 90, 135],
+    fertilizers: ['Urea (46-0-0)', 'NPK 20-20-20', 'Ammonium Sulfate'],
     pestControlFrequency: 14,
     pesticides: ['Copper oxychloride', 'Quinalphos', 'Imidacloprid'],
     yieldPerAcre: 2000,
@@ -202,10 +217,67 @@ export const CROP_DATABASE: Record<string, CropData> = {
     wateringFrequency: 7,
     weedingFrequency: 21,
     fertilizerSchedule: [21, 42],
+    fertilizers: ['DAP (18-46-0)', 'Urea (46-0-0)', 'Potash (0-0-60)'],
     pestControlFrequency: 14,
     pesticides: ['Chlorpyrifos', 'Imidacloprid', 'Cypermethrin'],
     yieldPerAcre: 1500,
     optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Basil': {
+    name: 'Basil',
+    category: 'Herb',
+    growthDays: 45,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil', 'Pyrethrin'],
+    yieldPerAcre: 800,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Mint': {
+    name: 'Mint',
+    category: 'Herb',
+    growthDays: 40,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 600,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Parsley': {
+    name: 'Parsley',
+    category: 'Herb',
+    growthDays: 50,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 500,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Coriander': {
+    name: 'Coriander',
+    category: 'Herb',
+    growthDays: 40,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 700,
+    optimalTemp: '15-25°C',
     soilType: ['Loam', 'Sandy']
   }
 };
@@ -270,7 +342,8 @@ export const generateMaintenanceSchedule = (plantingDate: string, cropName: stri
     schedule.push({
       type: 'Fertilizer',
       date: date.toISOString().split('T')[0],
-      day: day
+      day: day,
+      fertilizers: crop.fertilizers
     });
   });
   

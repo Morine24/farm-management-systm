@@ -268,7 +268,6 @@ const Tasks: React.FC = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Task</th>
-                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell">Type</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap">Assigned</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden md:table-cell">Due Date</th>
                 <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider whitespace-nowrap hidden lg:table-cell">Est. Hours</th>
@@ -286,9 +285,6 @@ const Tasks: React.FC = () => {
                       <span className="text-xl sm:text-2xl mr-1 sm:mr-2">{getTaskIcon(task.type)}</span>
                       <div className="font-medium text-gray-900 text-xs sm:text-sm">{task.type}</div>
                     </div>
-                  </td>
-                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
-                    <span className="text-sm text-gray-900">{task.type}</span>
                   </td>
                   <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
