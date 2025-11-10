@@ -47,6 +47,7 @@ const Labour: React.FC = () => {
   const [records, setRecords] = useState<LabourRecord[]>([]);
   const [farms, setFarms] = useState<Farm[]>([]);
   const [workers, setWorkers] = useState<Worker[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [activeCheckins, setActiveCheckins] = useState<Attendance[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
@@ -54,11 +55,15 @@ const Labour: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler'>('attendance');
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(new Date());
+  const [timeIn, setTimeIn] = useState('');
+  const [timeOut, setTimeOut] = useState('');
+  const [ratePerHour, setRatePerHour] = useState(0);
 
   useEffect(() => {
     fetchLabourRecords();
     fetchFarms();
     fetchWorkers();
+    fetchUsers();
     fetchActiveCheckins();
     
     const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
@@ -109,6 +114,18 @@ const Labour: React.FC = () => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      const { collection, getDocs } = await import('firebase/firestore');
+      const { db } = await import('../config/firebase');
+      const snapshot = await getDocs(collection(db, 'users'));
+      const usersData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setUsers(usersData);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
+
   const fetchActiveCheckins = async () => {
     try {
       const response = await fetch('/api/labour/active-checkins');
@@ -128,6 +145,7 @@ const Labour: React.FC = () => {
       });
       if (response.ok) {
         fetchActiveCheckins();
+        fetchLabourRecords();
       }
     } catch (error) {
       console.error('Failed to check out:', error);
@@ -560,24 +578,43 @@ const Labour: React.FC = () => {
       )}
 
       {/* Add Labour Modal */}
-      {showAddModal && (
+      {showAddModal && (() => {
+        const calculateAmountPayable = () => {
+          if (!timeIn || !timeOut || !ratePerHour) return 0;
+          const [inHour, inMin] = timeIn.split(':').map(Number);
+          const [outHour, outMin] = timeOut.split(':').map(Number);
+          const hoursWorked = ((outHour * 60 + outMin) - (inHour * 60 + inMin)) / 60;
+          return hoursWorked * ratePerHour;
+        };
+        
+        const amountPayable = calculateAmountPayable();
+        
+        return (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-semibold mb-4">Add Labour Record</h2>
             <form onSubmit={async (e) => {
               e.preventDefault();
               const formData = new FormData(e.target as HTMLFormElement);
-              const hoursWorked = parseFloat(formData.get('hoursWorked') as string);
-              const ratePerHour = parseFloat(formData.get('ratePerHour') as string);
+              const timeInValue = formData.get('timeIn') as string;
+              const timeOutValue = formData.get('timeOut') as string;
+              const [inHour, inMin] = timeInValue.split(':').map(Number);
+              const [outHour, outMin] = timeOutValue.split(':').map(Number);
+              const hoursWorked = ((outHour * 60 + outMin) - (inHour * 60 + inMin)) / 60;
+              const ratePerHourValue = parseFloat(formData.get('ratePerHour') as string);
               const farmId = formData.get('farmId') as string;
               const selectedFarm = farms.find(f => f.id === farmId);
               
               const recordData = {
                 workerName: formData.get('workerName') as string,
                 workType: formData.get('workType') as string,
+                timeIn: timeInValue,
+                timeOut: timeOutValue,
                 hoursWorked,
-                ratePerHour,
-                totalPay: hoursWorked * ratePerHour,
+                ratePerHour: ratePerHourValue,
+                totalPay: hoursWorked * ratePerHourValue,
+                frequency: formData.get('frequency') as string,
+                remarks: formData.get('remarks') as string,
                 date: new Date(formData.get('date') as string),
                 farmId: farmId || undefined,
                 farmName: selectedFarm?.name || undefined,
@@ -593,6 +630,9 @@ const Labour: React.FC = () => {
                 
                 if (response.ok) {
                   setShowAddModal(false);
+                  setTimeIn('');
+                  setTimeOut('');
+                  setRatePerHour(0);
                   fetchLabourRecords();
                 }
               } catch (error) {
@@ -611,23 +651,20 @@ const Labour: React.FC = () => {
                     {workers.map(worker => (
                       <option key={worker.id} value={worker.name}>{worker.name}</option>
                     ))}
+                    {users.map(user => (
+                      <option key={user.id} value={user.name}>{user.name}</option>
+                    ))}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Work Type</label>
-                  <select
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                  <input
+                    type="text"
                     name="workType"
                     required
+                    placeholder="e.g., feeding, washing, spraying"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  >
-                    <option value="">Select work type</option>
-                    <option value="Planting">Planting</option>
-                    <option value="Harvesting">Harvesting</option>
-                    <option value="Irrigation">Irrigation</option>
-                    <option value="Weeding">Weeding</option>
-                    <option value="Fertilizing">Fertilizing</option>
-                    <option value="General Maintenance">General Maintenance</option>
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
@@ -643,26 +680,67 @@ const Labour: React.FC = () => {
                 </div>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Hours Worked</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time In</label>
                     <input
-                      type="number"
-                      name="hoursWorked"
+                      type="time"
+                      name="timeIn"
                       required
-                      step="0.5"
-                      min="0"
+                      value={timeIn}
+                      onChange={(e) => setTimeIn(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Rate/Hour ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Time Out</label>
                     <input
-                      type="number"
-                      name="ratePerHour"
+                      type="time"
+                      name="timeOut"
                       required
-                      step="0.01"
-                      min="0"
+                      value={timeOut}
+                      onChange={(e) => setTimeOut(e.target.value)}
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     />
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                  <select
+                    name="frequency"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="Daily">Daily</option>
+                    <option value="Once">Once</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Remarks</label>
+                  <select
+                    name="remarks"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  >
+                    <option value="Done">Done</option>
+                    <option value="Not Done">Not Done</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rate/Hour ($)</label>
+                  <input
+                    type="number"
+                    name="ratePerHour"
+                    required
+                    step="0.01"
+                    min="0"
+                    value={ratePerHour || ''}
+                    onChange={(e) => setRatePerHour(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount Payable ($)</label>
+                  <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 font-semibold">
+                    ${amountPayable.toFixed(2)}
                   </div>
                 </div>
                 <div>
@@ -694,7 +772,8 @@ const Labour: React.FC = () => {
             </form>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {/* Add Worker Modal */}
       {showWorkerModal && (

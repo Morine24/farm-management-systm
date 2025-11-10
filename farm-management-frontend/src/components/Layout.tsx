@@ -14,7 +14,8 @@ import {
   LogOut,
   Briefcase,
   Calendar,
-  Download
+  Download,
+  FileText
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import NotificationCenter from './NotificationCenter';
@@ -66,6 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         { name: 'Finance', href: '/financial', icon: DollarSign },
         { name: 'Labour', href: '/labour', icon: Briefcase },
         { name: 'Weather', href: '/weather', icon: Cloud },
+        { name: 'Reports', href: '/reports', icon: FileText },
         { name: 'Users', href: '/users', icon: Users },
       ];
     }

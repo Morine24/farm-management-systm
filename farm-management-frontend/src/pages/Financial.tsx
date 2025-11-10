@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, TrendingDown, Plus, Download, Calendar, FileText } from 'lucide-react';
+import toast, { Toaster } from 'react-hot-toast';
 
 interface FinancialRecord {
   id: string;
@@ -30,6 +31,9 @@ const Financial: React.FC = () => {
   const [categories, setCategories] = useState<any[]>([]);
   const [reportDateRange, setReportDateRange] = useState({ start: '', end: '' });
   const [loading, setLoading] = useState(false);
+  const [quantity, setQuantity] = useState(0);
+  const [unitPrice, setUnitPrice] = useState(0);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
   const incomeCategories = ['Crop Sales', 'Livestock Sales', 'Government Subsidy', 'Equipment Rental', 'Other Income'];
   const expenseCategories = ['Seeds & Plants', 'Fertilizers', 'Pesticides', 'Equipment', 'Labor', 'Utilities', 'Maintenance', 'Transportation', 'Other Expenses'];
@@ -150,7 +154,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
   };
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Type', 'Category', 'Field', 'Description', 'Amount'];
+    const headers = ['Date', 'Type', 'Category', 'Item', 'Quantity', 'Unit Price', 'Total Amount', 'Payment Status', 'Field', 'Description'];
     const csvData = records.map(record => {
       let dateStr = 'N/A';
       if (record.date) {
@@ -163,9 +167,13 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
         dateStr,
         record.type,
         record.category,
+        (record as any).item || '',
+        (record as any).quantity || '',
+        (record as any).unitPrice || '',
+        record.amount,
+        (record as any).paymentStatus || '',
         record.fieldName || 'General',
-        record.description || '',
-        record.amount
+        record.description || ''
       ];
     });
     
@@ -206,6 +214,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
 
   return (
     <div className="space-y-6">
+      <Toaster />
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
         <h1 className="text-2xl font-bold text-gray-900">Finance Management</h1>
@@ -542,7 +551,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
               const formData = new FormData(e.target as HTMLFormElement);
               const farmId = formData.get('farmId') as string;
               const selectedFarm = farms.find(f => f.id === farmId);
-              const recordData = {
+              const recordData: any = {
                 type: recordType,
                 category: formData.get('category') as string,
                 amount: parseFloat(formData.get('amount') as string),
@@ -551,6 +560,13 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 fieldId: farmId || undefined,
                 fieldName: selectedFarm?.name || undefined
               };
+              
+              if (recordType === 'income') {
+                recordData.item = formData.get('item') as string;
+                recordData.quantity = parseFloat(formData.get('quantity') as string) || 0;
+                recordData.unitPrice = parseFloat(formData.get('unitPrice') as string) || 0;
+                recordData.paymentStatus = formData.get('paymentStatus') as string;
+              }
               
               try {
                 // Use Firebase directly instead of API
@@ -561,11 +577,14 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 
                 setShowAddModal(false);
                 setRecordType('expense');
+                setQuantity(0);
+                setUnitPrice(0);
+                setSelectedCategory('');
                 fetchFinancialRecords();
-                alert('Financial record added successfully!');
+                toast.success('Financial record added successfully!');
               } catch (error) {
                 console.error('Error adding record:', error);
-                alert('Failed to add record. Please try again.');
+                toast.error('Failed to add record. Please try again.');
               }
             }}>
               <div className="space-y-4">
@@ -601,6 +620,8 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                   <select
                     name="category"
                     required
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   >
                     <option value="">Select category</option>
@@ -609,9 +630,50 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                     ))}
                   </select>
                 </div>
+                {recordType === 'income' && (selectedCategory === 'Crop Sales' || selectedCategory === 'Livestock Sales') && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Item/Commodity</label>
+                      <input
+                        type="text"
+                        name="item"
+                        placeholder="e.g., Manangu, Kales"
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
+                        <input
+                          type="number"
+                          name="quantity"
+                          step="0.01"
+                          min="0"
+                          placeholder="0"
+                          value={quantity || ''}
+                          onChange={(e) => setQuantity(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price ($)</label>
+                        <input
+                          type="number"
+                          name="unitPrice"
+                          step="0.01"
+                          min="0"
+                          placeholder="0.00"
+                          value={unitPrice || ''}
+                          onChange={(e) => setUnitPrice(parseFloat(e.target.value) || 0)}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Amount ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount ($)</label>
                     <input
                       type="number"
                       name="amount"
@@ -619,7 +681,9 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                       step="0.01"
                       min="0.01"
                       placeholder="0.00"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                      value={recordType === 'income' && quantity && unitPrice ? (quantity * unitPrice).toFixed(2) : ''}
+                      readOnly={recordType === 'income' && quantity > 0 && unitPrice > 0}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500 bg-gray-50"
                     />
                   </div>
                   <div>
@@ -633,6 +697,18 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                     />
                   </div>
                 </div>
+                {recordType === 'income' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Payment Status</label>
+                    <select
+                      name="paymentStatus"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                    >
+                      <option value="Yes">Yes - Paid</option>
+                      <option value="No">No - Pending</option>
+                    </select>
+                  </div>
+                )}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Farm</label>
                   <select

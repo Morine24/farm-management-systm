@@ -16,6 +16,7 @@ import Financial from './pages/Financial';
 import Weather from './pages/Weather';
 import Users from './pages/Users';
 import Labour from './pages/Labour';
+import Reports from './pages/Reports';
 import InstallPWA from './components/InstallPWA';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -104,6 +105,9 @@ const AppRoutes: React.FC = () => {
         )}
         {!isWorker && !isFinancialManager && (
           <Route path="/users" element={<Users />} />
+        )}
+        {!isWorker && (
+          <Route path="/reports" element={<Reports />} />
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
