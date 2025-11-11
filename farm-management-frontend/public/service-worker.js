@@ -51,3 +51,23 @@ self.addEventListener('activate', (event) => {
   );
   return self.clients.claim();
 });
+
+self.addEventListener('push', (event) => {
+  const data = event.data ? event.data.json() : {};
+  const title = data.title || 'Farm Alert';
+  const options = {
+    body: data.message || 'You have a new notification',
+    icon: '/loosian-logo.jpg',
+    badge: '/loosian-logo.jpg',
+    tag: data.type || 'notification',
+    requireInteraction: data.priority === 'high'
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  event.waitUntil(
+    clients.openWindow('/')
+  );
+});

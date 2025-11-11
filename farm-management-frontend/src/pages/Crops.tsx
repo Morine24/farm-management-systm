@@ -72,6 +72,12 @@ const Crops: React.FC = () => {
   const [plantingDate, setPlantingDate] = useState<string>('');
   const [autoHarvestDate, setAutoHarvestDate] = useState<string>('');
   const [viewingCrop, setViewingCrop] = useState<Crop | null>(null);
+  const [showProductivityModal, setShowProductivityModal] = useState(false);
+  const [productivityRecords, setProductivityRecords] = useState<any[]>([]);
+  const [showIrrigationModal, setShowIrrigationModal] = useState(false);
+  const [irrigationRecords, setIrrigationRecords] = useState<any[]>([]);
+  const [irrigationDate, setIrrigationDate] = useState(new Date().toISOString().split('T')[0]);
+  const [activeTab, setActiveTab] = useState<'crops' | 'productivity' | 'irrigation'>('crops');
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'crops'), (snapshot) => {
@@ -88,6 +94,75 @@ const Crops: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'cropProductivity'), (snapshot) => {
+      const data = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        date: doc.data().date.toDate()
+      }));
+      setProductivityRecords(data.sort((a: any, b: any) => b.date.getTime() - a.date.getTime()));
+    });
+    return () => unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'irrigation') {
+      fetchIrrigationRecords();
+    }
+  }, [activeTab, irrigationDate]);
+
+  const fetchIrrigationRecords = async () => {
+    const { query, where, Timestamp, getDocs } = await import('firebase/firestore');
+    const dateObj = new Date(irrigationDate);
+    const snapshot = await getDocs(
+      query(collection(db, 'irrigation'), where('date', '==', Timestamp.fromDate(dateObj)))
+    );
+    const data = snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate()
+    }));
+    setIrrigationRecords(data);
+  };
+
+  const handleProductivitySubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const { Timestamp } = await import('firebase/firestore');
+    
+    const recordData = {
+      date: Timestamp.fromDate(new Date(formData.get('date') as string)),
+      produce: formData.get('produce') as string,
+      quantity: formData.get('quantity') as string
+    };
+
+    await addDoc(collection(db, 'cropProductivity'), recordData);
+    setShowProductivityModal(false);
+    toast.success('Productivity record added');
+  };
+
+  const handleIrrigationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const { Timestamp } = await import('firebase/firestore');
+    
+    const recordData = {
+      date: Timestamp.fromDate(new Date(formData.get('date') as string)),
+      cropBlock: formData.get('cropBlock') as string,
+      method: formData.get('method') as string,
+      startTime: formData.get('startTime') as string,
+      endTime: formData.get('endTime') as string,
+      frequency: formData.get('frequency') as string,
+      remarks: formData.get('remarks') as string
+    };
+
+    await addDoc(collection(db, 'irrigation'), recordData);
+    setShowIrrigationModal(false);
+    fetchIrrigationRecords();
+    toast.success('Irrigation record added');
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -134,19 +209,78 @@ const Crops: React.FC = () => {
     <div className="p-6">
       <Toaster />
       <div className="mb-6">
-        <h1 className="text-xl md:text-3xl font-bold mb-4">Crop Management</h1>
-        <div className="flex flex-col sm:flex-row gap-3">
-          <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="px-3 py-2 border rounded-lg flex-1 sm:flex-none sm:w-48">
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-xl md:text-3xl font-bold">Crop Management</h1>
+          <button
+            onClick={() => {
+              if (activeTab === 'crops') setShowModal(true);
+              else if (activeTab === 'productivity') setShowProductivityModal(true);
+              else setShowIrrigationModal(true);
+            }}
+            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {activeTab === 'crops' ? 'Add Crop' : activeTab === 'productivity' ? 'Add Record' : 'Add Irrigation'}
+          </button>
+        </div>
+
+        <div className="border-b border-gray-200 mb-4">
+          <nav className="flex space-x-8">
+            <button
+              onClick={() => setActiveTab('crops')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'crops'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Crops
+            </button>
+            <button
+              onClick={() => setActiveTab('productivity')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'productivity'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Productivity
+            </button>
+            <button
+              onClick={() => setActiveTab('irrigation')}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === 'irrigation'
+                  ? 'border-primary-500 text-primary-600'
+                  : 'border-transparent text-gray-500 hover:text-gray-700'
+              }`}
+            >
+              Irrigation
+            </button>
+          </nav>
+        </div>
+
+        {activeTab === 'irrigation' && (
+          <div className="bg-white rounded-lg shadow p-4 mb-4">
+            <label className="block text-sm font-medium mb-2">Select Date</label>
+            <input
+              type="date"
+              value={irrigationDate}
+              onChange={(e) => setIrrigationDate(e.target.value)}
+              className="px-3 py-2 border rounded-lg"
+            />
+          </div>
+        )}
+
+        {activeTab === 'crops' && (
+          <select value={filterFarm} onChange={(e) => setFilterFarm(e.target.value)} className="px-3 py-2 border rounded-lg w-48">
             <option value="">All Farms</option>
             {farms.map(farm => <option key={farm.id} value={farm.id}>{farm.name}</option>)}
           </select>
-          <button onClick={() => setShowModal(true)} className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap">
-            <Plus className="h-4 w-4 mr-2" />Add Crop
-          </button>
-        </div>
+        )}
       </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden">
+      {activeTab === 'crops' && (
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -187,6 +321,61 @@ const Crops: React.FC = () => {
           </tbody>
         </table>
       </div>
+      )}
+
+      {activeTab === 'productivity' && (
+      <div className="bg-white rounded-lg shadow overflow-hidden">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produce</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {productivityRecords.map(record => (
+              <tr key={record.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.date.toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{record.produce}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.quantity}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      )}
+
+      {activeTab === 'irrigation' && (
+      <div className="bg-white rounded-lg shadow overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Crop/Block</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method Used</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Starting Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {irrigationRecords.map(record => (
+              <tr key={record.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.date.toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{record.cropBlock}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.method}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.startTime}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.endTime}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.frequency}</td>
+                <td className="px-6 py-4 text-sm">{record.remarks}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      )}
 
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -308,6 +497,78 @@ const Crops: React.FC = () => {
               </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {showIrrigationModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+            <h2 className="text-xl font-semibold mb-4">Add Irrigation Record</h2>
+            <form onSubmit={handleIrrigationSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" name="date" required defaultValue={irrigationDate} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Crop/Block</label>
+                  <input type="text" name="cropBlock" required placeholder="e.g., Elephant farm" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Method Used</label>
+                  <input type="text" name="method" required placeholder="e.g., Drip, Sprinkler" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Starting Time</label>
+                  <input type="text" name="startTime" required placeholder="e.g., 8am" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">End Time</label>
+                  <input type="text" name="endTime" required placeholder="e.g., 1pm" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Frequency</label>
+                  <input type="text" name="frequency" required placeholder="e.g., Twice weekly, Daily" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Remarks</label>
+                  <textarea name="remarks" rows={2} placeholder="e.g., Onions, Thyme blocks and 2 Vegetable blocks" className="w-full px-3 py-2 border rounded-lg"></textarea>
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button type="button" onClick={() => setShowIrrigationModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Add Record</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {showProductivityModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Add Productivity Record</h2>
+            <form onSubmit={handleProductivitySubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Date</label>
+                  <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Produce</label>
+                  <input type="text" name="produce" required placeholder="e.g., Basil, Tomatoes" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Quantity</label>
+                  <input type="text" name="quantity" required placeholder="e.g., 290kgs" className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+              </div>
+              <div className="flex justify-end space-x-3 mt-6">
+                <button type="button" onClick={() => setShowProductivityModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Add Record</button>
+              </div>
+            </form>
           </div>
         </div>
       )}

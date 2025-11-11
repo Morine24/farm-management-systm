@@ -27,6 +27,8 @@ const Inventory: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [qtyReceived, setQtyReceived] = useState(0);
+  const [qtyIssued, setQtyIssued] = useState(0);
 
   useEffect(() => {
     fetchInventory();
@@ -282,18 +284,24 @@ const Inventory: React.FC = () => {
               const formData = new FormData(e.target as HTMLFormElement);
               const farmId = formData.get('farmId') as string;
               const selectedFarm = farms.find(f => f.id === farmId);
-              const itemData = {
+              const itemData: any = {
                 name: formData.get('name') as string,
                 category: formData.get('category') as string,
                 quantity: parseInt(formData.get('quantity') as string),
                 unit: formData.get('unit') as string,
                 costPerUnit: parseFloat(formData.get('costPerUnit') as string),
                 supplier: formData.get('supplier') as string,
-                lowStockThreshold: parseInt(formData.get('lowStockThreshold') as string),
-                expiryDate: formData.get('expiryDate') ? new Date(formData.get('expiryDate') as string) : undefined,
-                fieldId: farmId || undefined,
-                fieldName: selectedFarm?.name || undefined
+                lowStockThreshold: parseInt(formData.get('lowStockThreshold') as string)
               };
+              
+              if (formData.get('expiryDate')) {
+                itemData.expiryDate = new Date(formData.get('expiryDate') as string);
+              }
+              
+              if (farmId) {
+                itemData.fieldId = farmId;
+                itemData.fieldName = selectedFarm?.name;
+              }
               
               try {
                 const { addDoc, collection } = await import('firebase/firestore');
@@ -314,21 +322,14 @@ const Inventory: React.FC = () => {
                 });
                 
                 setShowAddModal(false);
+                setQtyReceived(0);
+                setQtyIssued(0);
                 fetchInventory();
               } catch (error) {
                 console.error('Error adding item:', error);
               }
             }}>
               <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
-                  <input
-                    type="text"
-                    name="name"
-                    required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
                   <select
@@ -344,27 +345,77 @@ const Inventory: React.FC = () => {
                     <option value="equipment">Equipment</option>
                   </select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Quantity</label>
-                    <input
-                      type="number"
-                      name="quantity"
-                      required
-                      min="0"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
-                    <input
-                      type="text"
-                      name="unit"
-                      required
-                      placeholder="kg, lbs, pcs"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Item Name</label>
+                  <input
+                    type="text"
+                    name="name"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    name="date"
+                    defaultValue={new Date().toISOString().split('T')[0]}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Received</label>
+                  <input
+                    type="number"
+                    name="quantity"
+                    required
+                    min="0"
+                    value={qtyReceived}
+                    onChange={(e) => setQtyReceived(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Units</label>
+                  <input
+                    type="text"
+                    name="unit"
+                    required
+                    placeholder="kg, lbs, pcs"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Quantity Issued</label>
+                  <input
+                    type="number"
+                    name="quantityIssued"
+                    min="0"
+                    value={qtyIssued}
+                    onChange={(e) => setQtyIssued(parseFloat(e.target.value) || 0)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Closing Balance</label>
+                  <input
+                    type="number"
+                    name="lowStockThreshold"
+                    required
+                    min="0"
+                    value={qtyReceived - qtyIssued}
+                    readOnly
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 focus:ring-primary-500 focus:border-primary-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                  <input
+                    type="text"
+                    name="supplier"
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Cost per Unit</label>
@@ -378,16 +429,15 @@ const Inventory: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Supplier</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
                   <input
-                    type="text"
-                    name="supplier"
-                    required
+                    type="date"
+                    name="expiryDate"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Farm Name (Optional)</label>
                   <select
                     name="farmId"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
@@ -397,24 +447,6 @@ const Inventory: React.FC = () => {
                       <option key={farm.id} value={farm.id}>{farm.name}</option>
                     ))}
                   </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Low Stock Threshold</label>
-                  <input
-                    type="number"
-                    name="lowStockThreshold"
-                    required
-                    min="0"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry Date (Optional)</label>
-                  <input
-                    type="date"
-                    name="expiryDate"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                  />
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">

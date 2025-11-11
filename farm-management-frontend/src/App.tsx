@@ -1,7 +1,10 @@
-import React, { ErrorInfo, Component } from 'react';
+import React, { ErrorInfo, Component, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { SocketProvider } from './contexts/SocketContext';
+import { ToastProvider } from './contexts/ToastContext';
+import { smartAlertService } from './services/smartAlertService';
+import { financialAutomation } from './services/financialAutomation';
 import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +21,8 @@ import Users from './pages/Users';
 import Labour from './pages/Labour';
 import Reports from './pages/Reports';
 import Livestock from './pages/Livestock';
+import LivestockInventory from './pages/LivestockInventory';
+import Analytics from './pages/Analytics';
 import InstallPWA from './components/InstallPWA';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
@@ -56,24 +61,17 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: bo
 
 const AppRoutes: React.FC = () => {
   const { user, isWorker, isFinancialManager } = useUser();
-  const [isLoading, setIsLoading] = React.useState(true);
 
-  React.useEffect(() => {
-    // Simulate app initialization
-    const timer = setTimeout(() => setIsLoading(false), 1000);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading CropSync...</p>
-        </div>
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (user) {
+      smartAlertService.startMonitoring();
+      financialAutomation.startAutomation();
+      return () => {
+        smartAlertService.stopMonitoring();
+        financialAutomation.stopAutomation();
+      };
+    }
+  }, [user]);
 
   if (!user) {
     return <Login />;
@@ -106,13 +104,19 @@ const AppRoutes: React.FC = () => {
           <Route path="/labour" element={<Labour />} />
         )}
         {!isWorker && (
-          <Route path="/livestock" element={<Livestock />} />
+          <>
+            <Route path="/livestock" element={<Livestock />} />
+            <Route path="/livestock-inventory" element={<LivestockInventory />} />
+          </>
         )}
         {!isWorker && !isFinancialManager && (
           <Route path="/users" element={<Users />} />
         )}
         {!isWorker && (
           <Route path="/reports" element={<Reports />} />
+        )}
+        {!isWorker && (
+          <Route path="/analytics" element={<Analytics />} />
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -123,14 +127,16 @@ const AppRoutes: React.FC = () => {
 function App() {
   return (
     <ErrorBoundary>
-      <UserProvider>
-        <SocketProvider>
-          <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
-            <AppRoutes />
-            <InstallPWA />
-          </Router>
-        </SocketProvider>
-      </UserProvider>
+      <ToastProvider>
+        <UserProvider>
+          <SocketProvider>
+            <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+              <AppRoutes />
+              <InstallPWA />
+            </Router>
+          </SocketProvider>
+        </UserProvider>
+      </ToastProvider>
     </ErrorBoundary>
   );
 }

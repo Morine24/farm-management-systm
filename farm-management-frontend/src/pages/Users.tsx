@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
-import { Plus, Edit, Trash2, Eye } from 'lucide-react';
+import { Plus, Edit, Trash2, Key } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 interface User {
   id: string;
@@ -14,6 +15,7 @@ interface User {
 }
 
 const Users: React.FC = () => {
+  const { showToast } = useToast();
   const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -49,8 +51,9 @@ const Users: React.FC = () => {
       });
       setNewUser({ name: '', email: '', role: 'worker', phone: '', status: 'active' });
       setShowAddForm(false);
+      showToast('User added successfully', 'success');
     } catch (error) {
-      console.error('Error adding user:', error);
+      showToast('Failed to add user', 'error');
     }
   };
 
@@ -66,8 +69,9 @@ const Users: React.FC = () => {
         status: editingUser.status
       });
       setEditingUser(null);
+      showToast('User updated successfully', 'success');
     } catch (error) {
-      console.error('Error updating user:', error);
+      showToast('Failed to update user', 'error');
     }
   };
 
@@ -75,8 +79,9 @@ const Users: React.FC = () => {
     const newStatus = currentStatus === 'active' ? 'inactive' : 'active';
     try {
       await updateDoc(doc(db, 'users', userId), { status: newStatus });
+      showToast(`User ${newStatus === 'active' ? 'activated' : 'deactivated'} successfully`, 'success');
     } catch (error) {
-      console.error('Error updating user status:', error);
+      showToast('Failed to update user status', 'error');
     }
   };
 
@@ -84,8 +89,23 @@ const Users: React.FC = () => {
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await deleteDoc(doc(db, 'users', userId));
+        showToast('User deleted successfully', 'success');
       } catch (error) {
-        console.error('Error deleting user:', error);
+        showToast('Failed to delete user', 'error');
+      }
+    }
+  };
+
+  const handleResetPassword = async (userId: string, userName: string) => {
+    if (window.confirm(`Reset password for ${userName}? They will need to change it on next login.`)) {
+      try {
+        await updateDoc(doc(db, 'users', userId), {
+          password: 'Karibu@123',
+          isDefaultPassword: true
+        });
+        showToast('Password reset successfully', 'success');
+      } catch (error) {
+        showToast('Failed to reset password', 'error');
       }
     }
   };
@@ -107,7 +127,7 @@ const Users: React.FC = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Staffing Management</h1>
         <button
           onClick={() => setShowAddForm(true)}
           className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 flex items-center gap-2"
@@ -119,7 +139,7 @@ const Users: React.FC = () => {
 
       {showAddForm && (
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-4">Add New User</h2>
+          <h2 className="text-lg font-semibold mb-4">Add New Staff Member</h2>
           <form onSubmit={handleAddUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -160,7 +180,7 @@ const Users: React.FC = () => {
                 type="submit"
                 className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
               >
-                Add User
+                Add Staff
               </button>
               <button
                 type="button"
@@ -176,7 +196,7 @@ const Users: React.FC = () => {
 
       {editingUser && (
         <div className="bg-white p-6 rounded-lg shadow-md">
-          <h2 className="text-lg font-semibold mb-4">Edit User</h2>
+          <h2 className="text-lg font-semibold mb-4">Edit Staff Member</h2>
           <form onSubmit={handleEditUser} className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <input
               type="text"
@@ -217,7 +237,7 @@ const Users: React.FC = () => {
                 type="submit"
                 className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
               >
-                Update User
+                Update Staff
               </button>
               <button
                 type="button"
@@ -236,7 +256,7 @@ const Users: React.FC = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Staff Member</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Phone</th>
@@ -278,12 +298,21 @@ const Users: React.FC = () => {
                       <button
                         onClick={() => setEditingUser(user)}
                         className="text-blue-600 hover:text-blue-900"
+                        title="Edit user"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
+                        onClick={() => handleResetPassword(user.id, user.name)}
+                        className="text-orange-600 hover:text-orange-900"
+                        title="Reset password"
+                      >
+                        <Key className="h-4 w-4" />
+                      </button>
+                      <button
                         onClick={() => handleDeleteUser(user.id)}
                         className="text-red-600 hover:text-red-900"
+                        title="Delete user"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

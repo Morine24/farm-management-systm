@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
-import { TrendingUp, TrendingDown, MapPin, Wheat, CheckSquare, Package, AlertTriangle } from 'lucide-react';
+import { TrendingUp, TrendingDown, MapPin, Wheat, CheckSquare, Package, AlertTriangle, DollarSign } from 'lucide-react';
 import { db } from '../config/firebase';
 import { collection, onSnapshot } from 'firebase/firestore';
 
@@ -30,6 +30,7 @@ const Dashboard: React.FC = () => {
     monthlyExpenses: 0
   });
   const [fieldFinancials, setFieldFinancials] = useState<FieldFinancial[]>([]);
+  const [financialRecords, setFinancialRecords] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -51,11 +52,16 @@ const Dashboard: React.FC = () => {
       fetchDashboardStats();
     });
     
+    const unsubscribeFinancial = onSnapshot(collection(db, 'financial'), (snapshot) => {
+      setFinancialRecords(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    
     return () => {
       unsubscribeFields();
       unsubscribeCrops();
       unsubscribeTasks();
       unsubscribeInventory();
+      unsubscribeFinancial();
     };
   }, []);
 
@@ -77,33 +83,64 @@ const Dashboard: React.FC = () => {
     ]);
   };
 
+  // Calculate financial KPIs
+  const totalIncome = financialRecords
+    .filter(r => r.type === 'income')
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+  
+  const totalExpenses = financialRecords
+    .filter(r => r.type === 'expense')
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+  
+  const netProfit = totalIncome - totalExpenses;
+  const profitMargin = totalIncome > 0 ? ((netProfit / totalIncome) * 100).toFixed(1) : 0;
+  
+  // Calculate sales (crop sales only)
+  const totalSales = financialRecords
+    .filter(r => r.type === 'income' && (r.category === 'Crop Sales' || r.category === 'Livestock/Livestock Products Sale'))
+    .reduce((sum, r) => sum + (r.amount || 0), 0);
+  
   const statCards = [
     {
-      title: 'Total Fields',
-      value: stats.totalFields,
-      icon: MapPin,
-      color: 'bg-blue-500',
-      change: '+2 this month'
+      title: 'Total Income',
+      value: `KSh ${totalIncome.toLocaleString()}`,
+      icon: TrendingUp,
+      color: 'bg-green-500',
+      change: `${profitMargin}% margin`
+    },
+    {
+      title: 'Total Expenses',
+      value: `KSh ${totalExpenses.toLocaleString()}`,
+      icon: TrendingDown,
+      color: 'bg-red-500',
+      change: 'This period'
+    },
+    {
+      title: 'Net Profit',
+      value: `KSh ${netProfit.toLocaleString()}`,
+      icon: DollarSign,
+      color: netProfit >= 0 ? 'bg-blue-500' : 'bg-red-500',
+      change: netProfit >= 0 ? 'Profitable' : 'Loss'
+    },
+    {
+      title: 'Total Sales',
+      value: `KSh ${totalSales.toLocaleString()}`,
+      icon: Wheat,
+      color: 'bg-purple-500',
+      change: 'Crop & Livestock'
     },
     {
       title: 'Active Crops',
       value: stats.activeCrops,
       icon: Wheat,
       color: 'bg-green-500',
-      change: '+5 this season'
+      change: 'Growing'
     },
     {
       title: 'Pending Tasks',
       value: stats.pendingTasks,
       icon: CheckSquare,
       color: 'bg-yellow-500',
-      change: '3 overdue'
-    },
-    {
-      title: 'Low Stock Items',
-      value: stats.lowStockItems,
-      icon: Package,
-      color: 'bg-red-500',
       change: 'Need attention'
     }
   ];

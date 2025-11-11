@@ -91,8 +91,18 @@ const NotificationCenter: React.FC = () => {
     switch (type) {
       case 'task_assigned': return '📋';
       case 'task_overdue': return '⏰';
+      case 'task_due_soon': return '⏳';
       case 'task_completed': return '✅';
       case 'low_inventory': return '📦';
+      case 'out_of_stock': return '⚠️';
+      case 'irrigation_required': return '💧';
+      case 'weeding_required': return '🌿';
+      case 'fertilization_required': return '🌱';
+      case 'harvest_approaching': return '🌾';
+      case 'soil_ph_alert': return '⚠️';
+      case 'low_moisture': return '💧';
+      case 'negative_cashflow': return '📉';
+      case 'budget_alert': return '💰';
       case 'payment_due': return '💰';
       case 'weather_alert': return '🌡️';
       case 'equipment_failure': return '⚠️';

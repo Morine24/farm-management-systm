@@ -32,27 +32,74 @@ const Weather: React.FC = () => {
 
   const fetchWeatherData = async () => {
     try {
-      const lat = -1.286389;
+      const lat = -1.286389; // Nairobi, Kenya
       const lon = 36.817223;
+      const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // OpenWeatherMap API key
       
-      const response = await fetch(`/api/weather/current?lat=${lat}&lon=${lon}`);
-      if (response.ok) {
-        const data = await response.json();
-        setCurrentWeather(data);
+      // Fetch current weather
+      const currentResponse = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
+      );
+      
+      if (currentResponse.ok) {
+        const currentData = await currentResponse.json();
         
-        const forecastResponse = await fetch(`/api/weather/forecast?lat=${lat}&lon=${lon}`);
+        setCurrentWeather({
+          date: new Date(),
+          temperature: {
+            current: Math.round(currentData.main.temp),
+            min: Math.round(currentData.main.temp_min),
+            max: Math.round(currentData.main.temp_max)
+          },
+          humidity: currentData.main.humidity,
+          precipitation: currentData.rain?.['1h'] || 0,
+          windSpeed: Math.round(currentData.wind.speed * 3.6), // Convert m/s to km/h
+          conditions: currentData.weather[0].main
+        });
+        
+        // Fetch 7-day forecast
+        const forecastResponse = await fetch(
+          `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
+        );
+        
         if (forecastResponse.ok) {
           const forecastData = await forecastResponse.json();
-          // Group by unique days and take first entry per day
-          const uniqueDays = forecastData.reduce((acc: WeatherForecast[], curr: any) => {
-            const dateStr = new Date(curr.date).toDateString();
-            if (!acc.find(item => new Date(item.date).toDateString() === dateStr)) {
-              acc.push(curr);
+          
+          // Group by day and get daily min/max
+          const dailyForecasts: { [key: string]: any } = {};
+          
+          forecastData.list.forEach((item: any) => {
+            const date = new Date(item.dt * 1000);
+            const dateKey = date.toDateString();
+            
+            if (!dailyForecasts[dateKey]) {
+              dailyForecasts[dateKey] = {
+                date,
+                temps: [],
+                conditions: item.weather[0].main,
+                precipitation: item.rain?.['3h'] || 0
+              };
             }
-            return acc;
-          }, []);
-          setForecast(uniqueDays.slice(0, 7));
+            
+            dailyForecasts[dateKey].temps.push(item.main.temp);
+            dailyForecasts[dateKey].precipitation += item.rain?.['3h'] || 0;
+          });
+          
+          const forecastArray = Object.values(dailyForecasts)
+            .slice(1, 8)
+            .map((day: any) => ({
+              date: day.date,
+              temperature: {
+                min: Math.round(Math.min(...day.temps)),
+                max: Math.round(Math.max(...day.temps))
+              },
+              conditions: day.conditions,
+              precipitation: Math.round(day.precipitation)
+            }));
+          
+          setForecast(forecastArray);
         }
+        
         setAlerts([]);
       } else {
         // Fallback to mock data if API fails
@@ -77,7 +124,7 @@ const Weather: React.FC = () => {
 
         setCurrentWeather(mockCurrentWeather);
         setForecast(mockForecast);
-        setAlerts(['Weather API unavailable - showing sample data. Please verify your OpenWeatherMap account.']);
+        setAlerts(['Unable to fetch real-time weather data. Showing sample data.']);
       }
     } catch (error) {
       console.error('Failed to fetch weather data:', error);

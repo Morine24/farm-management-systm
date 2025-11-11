@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Users, Plus, DollarSign, Clock, Calendar, TrendingUp } from 'lucide-react';
+import { Users, Plus, DollarSign, Clock, Calendar, TrendingUp, Briefcase, Edit2, Trash2, Phone } from 'lucide-react';
 import { collection, onSnapshot } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -43,6 +43,23 @@ interface Attendance {
   status: 'checked_in' | 'checked_out';
 }
 
+interface Contract {
+  id: string;
+  date: string;
+  project: string;
+  inCharge: string;
+  contact: string;
+  employees: string;
+  cost?: number;
+}
+
+interface WorkPlan {
+  id: string;
+  date: string;
+  activity: string;
+  labourRequired: string;
+}
+
 const Labour: React.FC = () => {
   const [records, setRecords] = useState<LabourRecord[]>([]);
   const [farms, setFarms] = useState<Farm[]>([]);
@@ -52,12 +69,21 @@ const Labour: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler' | 'contracts'>('attendance');
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [timeIn, setTimeIn] = useState('');
   const [timeOut, setTimeOut] = useState('');
   const [ratePerHour, setRatePerHour] = useState(0);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [showContractForm, setShowContractForm] = useState(false);
+  const [editingContractId, setEditingContractId] = useState<string | null>(null);
+  const [contractForm, setContractForm] = useState({ date: '', project: '', inCharge: '', contact: '', employees: '', cost: '' });
+  const [workPlans, setWorkPlans] = useState<WorkPlan[]>([]);
+  const [showWorkPlanForm, setShowWorkPlanForm] = useState(false);
+  const [editingWorkPlanId, setEditingWorkPlanId] = useState<string | null>(null);
+  const [workPlanForm, setWorkPlanForm] = useState({ date: '', activity: '', labourRequired: '' });
+  const [schedulerView, setSchedulerView] = useState<'tasks' | 'workplans'>('tasks');
 
   useEffect(() => {
     fetchLabourRecords();
@@ -65,6 +91,8 @@ const Labour: React.FC = () => {
     fetchWorkers();
     fetchUsers();
     fetchActiveCheckins();
+    fetchContracts();
+    fetchWorkPlans();
     
     const unsubscribeTasks = onSnapshot(collection(db, 'tasks'), (snapshot) => {
       const tasksData = snapshot.docs.map(doc => ({
@@ -135,6 +163,111 @@ const Labour: React.FC = () => {
       }
     } catch (error) {
       console.error('Failed to fetch active check-ins:', error);
+    }
+  };
+
+  const fetchContracts = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/contracts');
+      const data = await response.json();
+      setContracts(data);
+    } catch (error) {
+      console.error('Error fetching contracts:', error);
+    }
+  };
+
+  const handleContractSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingContractId 
+        ? `http://localhost:5001/api/contracts/${editingContractId}`
+        : 'http://localhost:5001/api/contracts';
+      const method = editingContractId ? 'PUT' : 'POST';
+      
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(contractForm)
+      });
+      
+      fetchContracts();
+      setContractForm({ date: '', project: '', inCharge: '', contact: '', employees: '', cost: '' });
+      setEditingContractId(null);
+      setShowContractForm(false);
+    } catch (error) {
+      console.error('Error saving contract:', error);
+    }
+  };
+
+  const handleEditContract = (contract: Contract) => {
+    setContractForm({
+      date: contract.date,
+      project: contract.project,
+      inCharge: contract.inCharge,
+      contact: contract.contact,
+      employees: contract.employees,
+      cost: contract.cost?.toString() || ''
+    });
+    setEditingContractId(contract.id);
+    setShowContractForm(true);
+  };
+
+  const handleDeleteContract = async (id: string) => {
+    if (!window.confirm('Delete this contract?')) return;
+    try {
+      await fetch(`http://localhost:5001/api/contracts/${id}`, { method: 'DELETE' });
+      fetchContracts();
+    } catch (error) {
+      console.error('Error deleting contract:', error);
+    }
+  };
+
+  const fetchWorkPlans = async () => {
+    try {
+      const response = await fetch('http://localhost:5001/api/workplans');
+      const data = await response.json();
+      setWorkPlans(data);
+    } catch (error) {
+      console.error('Error fetching work plans:', error);
+    }
+  };
+
+  const handleWorkPlanSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const url = editingWorkPlanId 
+        ? `http://localhost:5001/api/workplans/${editingWorkPlanId}`
+        : 'http://localhost:5001/api/workplans';
+      const method = editingWorkPlanId ? 'PUT' : 'POST';
+      
+      await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(workPlanForm)
+      });
+      
+      fetchWorkPlans();
+      setWorkPlanForm({ date: '', activity: '', labourRequired: '' });
+      setEditingWorkPlanId(null);
+      setShowWorkPlanForm(false);
+    } catch (error) {
+      console.error('Error saving work plan:', error);
+    }
+  };
+
+  const handleEditWorkPlan = (plan: WorkPlan) => {
+    setWorkPlanForm({ date: plan.date, activity: plan.activity, labourRequired: plan.labourRequired });
+    setEditingWorkPlanId(plan.id);
+    setShowWorkPlanForm(true);
+  };
+
+  const handleDeleteWorkPlan = async (id: string) => {
+    if (!window.confirm('Delete this work plan?')) return;
+    try {
+      await fetch(`http://localhost:5001/api/workplans/${id}`, { method: 'DELETE' });
+      fetchWorkPlans();
+    } catch (error) {
+      console.error('Error deleting work plan:', error);
     }
   };
 
@@ -213,11 +346,11 @@ const Labour: React.FC = () => {
       </div>
 
       {/* Tabs */}
-      <div className="border-b border-gray-200">
-        <nav className="flex space-x-8">
+      <div className="border-b border-gray-200 overflow-x-auto">
+        <nav className="flex space-x-4 md:space-x-8 min-w-max">
           <button
             onClick={() => setActiveTab('attendance')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
               activeTab === 'attendance'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -227,17 +360,17 @@ const Labour: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('records')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
               activeTab === 'records'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Labour Records
+            Records
           </button>
           <button
             onClick={() => setActiveTab('workers')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
               activeTab === 'workers'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
@@ -247,13 +380,23 @@ const Labour: React.FC = () => {
           </button>
           <button
             onClick={() => setActiveTab('scheduler')}
-            className={`py-2 px-1 border-b-2 font-medium text-sm ${
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
               activeTab === 'scheduler'
                 ? 'border-primary-500 text-primary-600'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             }`}
           >
-            Task Scheduler
+            Scheduler
+          </button>
+          <button
+            onClick={() => setActiveTab('contracts')}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
+              activeTab === 'contracts'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Contracts
           </button>
         </nav>
       </div>
@@ -285,7 +428,7 @@ const Labour: React.FC = () => {
             <DollarSign className="h-8 w-8 text-yellow-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Pending Payment</p>
-              <p className="text-2xl font-bold text-yellow-600">${totalPending.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-yellow-600">KSh {totalPending.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -295,7 +438,7 @@ const Labour: React.FC = () => {
             <DollarSign className="h-8 w-8 text-green-600" />
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">Total Paid</p>
-              <p className="text-2xl font-bold text-green-600">${totalPaid.toLocaleString()}</p>
+              <p className="text-2xl font-bold text-green-600">KSh {totalPaid.toLocaleString()}</p>
             </div>
           </div>
         </div>
@@ -382,7 +525,7 @@ const Labour: React.FC = () => {
                         {worker.type}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${worker.ratePerHour}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">KSh {worker.ratePerHour}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{worker.phone || 'N/A'}</td>
                   </tr>
                 ))}
@@ -418,6 +561,145 @@ const Labour: React.FC = () => {
 
         return (
           <>
+            <div className="mb-4 border-b border-gray-200">
+              <nav className="flex space-x-8">
+                <button
+                  onClick={() => setSchedulerView('tasks')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    schedulerView === 'tasks'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Task Schedule
+                </button>
+                <button
+                  onClick={() => setSchedulerView('workplans')}
+                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                    schedulerView === 'workplans'
+                      ? 'border-blue-500 text-blue-600'
+                      : 'border-transparent text-gray-500 hover:text-gray-700'
+                  }`}
+                >
+                  Work Plans
+                </button>
+              </nav>
+            </div>
+
+            {schedulerView === 'workplans' && (
+              <div className="space-y-4">
+                <div className="flex justify-end">
+                  <button
+                    onClick={() => setShowWorkPlanForm(!showWorkPlanForm)}
+                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    <Plus className="w-5 h-5" />
+                    Add Work Plan
+                  </button>
+                </div>
+
+                {showWorkPlanForm && (
+                  <div className="bg-white rounded-lg shadow-md p-6">
+                    <h2 className="text-xl font-semibold mb-4">{editingWorkPlanId ? 'Edit' : 'New'} Work Plan</h2>
+                    <form onSubmit={handleWorkPlanSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                        <input
+                          type="date"
+                          value={workPlanForm.date}
+                          onChange={(e) => setWorkPlanForm({ ...workPlanForm, date: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          required
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Activity</label>
+                        <textarea
+                          value={workPlanForm.activity}
+                          onChange={(e) => setWorkPlanForm({ ...workPlanForm, activity: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          rows={2}
+                          placeholder="e.g., Weeding newly onion area having beans and Charles farm"
+                          required
+                        />
+                      </div>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Labour Required</label>
+                        <input
+                          type="text"
+                          value={workPlanForm.labourRequired}
+                          onChange={(e) => setWorkPlanForm({ ...workPlanForm, labourRequired: e.target.value })}
+                          className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                          placeholder="e.g., 4 women, no external labour needed"
+                          required
+                        />
+                      </div>
+                      <div className="md:col-span-2 flex gap-2">
+                        <button type="submit" className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+                          {editingWorkPlanId ? 'Update' : 'Create'} Work Plan
+                        </button>
+                        <button type="button" onClick={() => { setShowWorkPlanForm(false); setEditingWorkPlanId(null); setWorkPlanForm({ date: '', activity: '', labourRequired: '' }); }} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                          Cancel
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                )}
+
+                <div className="bg-white rounded-lg shadow-md overflow-hidden">
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Activity</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Labour Required</th>
+                          <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-200">
+                        {workPlans.map((plan) => (
+                          <tr key={plan.id} className="hover:bg-gray-50">
+                            <td className="px-4 py-3 text-sm text-gray-900">{new Date(plan.date).toLocaleDateString()}</td>
+                            <td className="px-4 py-3 text-sm text-gray-900">{plan.activity}</td>
+                            <td className="px-4 py-3 text-sm text-gray-700">
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4" />
+                                {plan.labourRequired}
+                              </div>
+                            </td>
+                            <td className="px-4 py-3 text-sm">
+                              <div className="flex gap-2">
+                                <button
+                                  onClick={() => handleEditWorkPlan(plan)}
+                                  className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteWorkPlan(plan.id)}
+                                  className="p-1 text-red-600 hover:bg-red-50 rounded"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                    {workPlans.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No work plans found. Add your first work plan to get started.
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {schedulerView === 'tasks' && (
+            <>
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-lg font-semibold text-gray-900">Weekly Task Schedule</h2>
               <div className="flex items-center space-x-4">
@@ -459,12 +741,12 @@ const Labour: React.FC = () => {
               <div className="bg-white rounded-lg shadow p-6">
                 <DollarSign className="h-8 w-8 text-yellow-600 mb-2" />
                 <p className="text-sm text-gray-600">Est. Cost</p>
-                <p className="text-2xl font-bold text-gray-900">${totalEstimatedCost.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">KSh {totalEstimatedCost.toFixed(2)}</p>
               </div>
               <div className="bg-white rounded-lg shadow p-6">
                 <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
                 <p className="text-sm text-gray-600">Actual Cost</p>
-                <p className="text-2xl font-bold text-gray-900">${totalActualCost.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-gray-900">KSh {totalActualCost.toFixed(2)}</p>
               </div>
             </div>
 
@@ -476,11 +758,11 @@ const Labour: React.FC = () => {
                     <div className="flex justify-between items-start mb-3">
                       <div>
                         <h4 className="font-semibold text-gray-900">{worker.name}</h4>
-                        <p className="text-sm text-gray-600">{worker.type} • ${worker.ratePerHour}/hour</p>
+                        <p className="text-sm text-gray-600">{worker.type} • KSh {worker.ratePerHour}/hour</p>
                       </div>
                       <div className="text-right">
                         <p className="text-sm text-gray-600">Total: <span className="font-medium">{totalHours.toFixed(1)}h</span></p>
-                        <p className="text-sm text-gray-600">Cost: <span className="font-medium text-green-600">${totalCost.toFixed(2)}</span></p>
+                        <p className="text-sm text-gray-600">Cost: <span className="font-medium text-green-600">KSh {totalCost.toFixed(2)}</span></p>
                       </div>
                     </div>
                     {workerTasks.length > 0 ? (
@@ -493,7 +775,7 @@ const Labour: React.FC = () => {
                             </div>
                             <div className="text-right">
                               <p className="text-sm text-gray-900">{task.estimatedHours}h</p>
-                              <p className="text-xs text-gray-600">${(task.labourCost || 0).toFixed(2)}</p>
+                              <p className="text-xs text-gray-600">KSh {(task.labourCost || 0).toFixed(2)}</p>
                               <span className={`text-xs px-2 py-1 rounded-full ${
                                 task.status === 'completed' ? 'bg-green-100 text-green-800' :
                                 task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
@@ -512,9 +794,170 @@ const Labour: React.FC = () => {
                 ))}
               </div>
             </div>
+            </>
+            )}
           </>
         );
       })()}
+
+      {/* Contracts Tab */}
+      {activeTab === 'contracts' && (
+        <div className="space-y-4">
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowContractForm(!showContractForm)}
+              className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Plus className="w-5 h-5" />
+              Add Contract
+            </button>
+          </div>
+
+          {showContractForm && (
+            <div className="bg-white rounded-lg shadow-md p-6">
+              <h2 className="text-xl font-semibold mb-4">{editingContractId ? 'Edit' : 'New'} Contract</h2>
+              <form onSubmit={handleContractSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                  <input
+                    type="date"
+                    value={contractForm.date}
+                    onChange={(e) => setContractForm({ ...contractForm, date: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Project/Activity</label>
+                  <input
+                    type="text"
+                    value={contractForm.project}
+                    onChange={(e) => setContractForm({ ...contractForm, project: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">In-charge Person</label>
+                  <input
+                    type="text"
+                    value={contractForm.inCharge}
+                    onChange={(e) => setContractForm({ ...contractForm, inCharge: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Contact Number</label>
+                  <input
+                    type="text"
+                    value={contractForm.contact}
+                    onChange={(e) => setContractForm({ ...contractForm, contact: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    required
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Employees Reported for Work</label>
+                  <textarea
+                    value={contractForm.employees}
+                    onChange={(e) => setContractForm({ ...contractForm, employees: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    rows={3}
+                    placeholder="Enter employee names separated by commas"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Cost (KSh)</label>
+                  <input
+                    type="number"
+                    value={contractForm.cost}
+                    onChange={(e) => setContractForm({ ...contractForm, cost: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-green-500"
+                    placeholder="Enter total cost"
+                    step="0.01"
+                    min="0"
+                  />
+                </div>
+                <div className="md:col-span-2 flex gap-2">
+                  <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                    {editingContractId ? 'Update' : 'Create'} Contract
+                  </button>
+                  <button type="button" onClick={() => { setShowContractForm(false); setEditingContractId(null); setContractForm({ date: '', project: '', inCharge: '', contact: '', employees: '', cost: '' }); }} className="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400">
+                    Cancel
+                  </button>
+                </div>
+              </form>
+            </div>
+          )}
+
+          <div className="bg-white rounded-lg shadow-md overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Project/Activity</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">In-charge Person</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Contact</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Employees</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Cost</th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200">
+                  {contracts.map((contract) => (
+                    <tr key={contract.id} className="hover:bg-gray-50">
+                      <td className="px-4 py-3 text-sm text-gray-900">{new Date(contract.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{contract.project}</td>
+                      <td className="px-4 py-3 text-sm text-gray-900">{contract.inCharge}</td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        <div className="flex items-center gap-1">
+                          <Phone className="w-4 h-4" />
+                          {contract.contact}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm text-gray-700">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
+                          <span className="truncate max-w-xs" title={contract.employees}>
+                            {contract.employees}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-sm font-medium text-gray-900">
+                        {contract.cost ? `KSh ${contract.cost.toLocaleString()}` : '-'}
+                      </td>
+                      <td className="px-4 py-3 text-sm">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleEditContract(contract)}
+                            className="p-1 text-blue-600 hover:bg-blue-50 rounded"
+                          >
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteContract(contract.id)}
+                            className="p-1 text-red-600 hover:bg-red-50 rounded"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {contracts.length === 0 && (
+                <div className="text-center py-8 text-gray-500">
+                  No contracts found. Add your first contract to get started.
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Labour Records Table */}
       {activeTab === 'records' && (
@@ -549,8 +992,8 @@ const Labour: React.FC = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.farmName || 'General'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{date.toLocaleDateString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{record.hoursWorked}h</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${record.ratePerHour}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${record.totalPay.toLocaleString()}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">KSh {record.ratePerHour}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">KSh {record.totalPay.toLocaleString()}</td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                         record.status === 'paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
@@ -725,7 +1168,7 @@ const Labour: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rate/Hour ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rate/Hour (KSh)</label>
                   <input
                     type="number"
                     name="ratePerHour"
@@ -738,9 +1181,9 @@ const Labour: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount Payable ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Amount Payable (KSh)</label>
                   <div className="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 font-semibold">
-                    ${amountPayable.toFixed(2)}
+                    KSh {amountPayable.toFixed(2)}
                   </div>
                 </div>
                 <div>
@@ -827,7 +1270,7 @@ const Labour: React.FC = () => {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Rate per Hour ($)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Rate per Hour (KSh)</label>
                   <input
                     type="number"
                     name="ratePerHour"

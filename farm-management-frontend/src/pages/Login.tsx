@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { useUser } from '../contexts/UserContext';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Leaf } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
 
 interface User {
   id: string;
@@ -16,6 +17,7 @@ interface User {
 }
 
 const Login: React.FC = () => {
+  const { showToast } = useToast();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -97,6 +99,7 @@ const Login: React.FC = () => {
 
       const updatedUser = { ...currentUser!, password: newPassword, isDefaultPassword: false };
       setUser(updatedUser);
+      showToast('Password updated successfully', 'success');
       navigate('/');
     } catch (error) {
       setError('Failed to update password. Please try again.');

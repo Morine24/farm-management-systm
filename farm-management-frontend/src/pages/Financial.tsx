@@ -35,7 +35,7 @@ const Financial: React.FC = () => {
   const [unitPrice, setUnitPrice] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState('');
 
-  const incomeCategories = ['Crop Sales', 'Livestock Sales', 'Government Subsidy', 'Equipment Rental', 'Other Income'];
+  const incomeCategories = ['Crop Sales', 'Livestock/Livestock Products Sale', 'Government Subsidy', 'Equipment Rental', 'Other Income'];
   const expenseCategories = ['Seeds & Plants', 'Fertilizers', 'Pesticides', 'Equipment', 'Labor', 'Utilities', 'Maintenance', 'Transportation', 'Other Expenses'];
 
   useEffect(() => {
@@ -131,18 +131,18 @@ FINANCIAL REPORT
 Period: ${new Date(reportDateRange.start).toLocaleDateString()} - ${new Date(reportDateRange.end).toLocaleDateString()}
 
 SUMMARY
-Total Income: $${reportData.totalIncome.toLocaleString()}
-Total Expenses: $${reportData.totalExpenses.toLocaleString()}
-Net Profit: $${reportData.netProfit.toLocaleString()}
+Total Income: KSh ${reportData.totalIncome.toLocaleString()}
+Total Expenses: KSh ${reportData.totalExpenses.toLocaleString()}
+Net Profit: KSh ${reportData.netProfit.toLocaleString()}
 Profit Margin: ${reportData.profitMargin}%
 
 INCOME BY CATEGORY
 ${Object.entries(reportData.incomeByCategory).map(([cat, amt]: [string, any]) => 
-  `${cat}: $${amt.toLocaleString()}`).join('\n')}
+  `${cat}: KSh ${amt.toLocaleString()}`).join('\n')}
 
 EXPENSES BY CATEGORY
 ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) => 
-  `${cat}: $${amt.toLocaleString()}`).join('\n')}
+  `${cat}: KSh ${amt.toLocaleString()}`).join('\n')}
     `.trim();
     const blob = new Blob([content], { type: 'text/plain' });
     const url = window.URL.createObjectURL(blob);
@@ -283,7 +283,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Income</p>
-              <p className="text-3xl font-bold text-green-600">${totalIncome.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-green-600">KSh {totalIncome.toLocaleString()}</p>
               <p className="text-sm text-green-500 flex items-center mt-1">
                 <TrendingUp className="h-4 w-4 mr-1" />
                 +12% from last month
@@ -299,9 +299,9 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-gray-600">Total Expenses</p>
-              <p className="text-3xl font-bold text-red-600">${totalExpenses.toLocaleString()}</p>
+              <p className="text-3xl font-bold text-red-600">KSh {totalExpenses.toLocaleString()}</p>
               <p className="text-xs text-gray-500 mt-1">
-                Labour: ${labourCosts.toLocaleString()} ({totalExpenses > 0 ? ((labourCosts/totalExpenses)*100).toFixed(1) : 0}%)
+                Labour: KSh {labourCosts.toLocaleString()} ({totalExpenses > 0 ? ((labourCosts/totalExpenses)*100).toFixed(1) : 0}%)
               </p>
             </div>
             <div className="bg-red-100 p-3 rounded-lg">
@@ -315,7 +315,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
             <div>
               <p className="text-sm font-medium text-gray-600">Net Profit</p>
               <p className={`text-3xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                ${netProfit.toLocaleString()}
+                KSh {netProfit.toLocaleString()}
               </p>
               <p className="text-sm text-gray-500 flex items-center mt-1">
                 <DollarSign className="h-4 w-4 mr-1" />
@@ -349,7 +349,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip formatter={(value) => [`$${value.toLocaleString()}`, '']} />
+              <Tooltip formatter={(value) => [`KSh ${value.toLocaleString()}`, '']} />
               <Line type="monotone" dataKey="income" stroke="#22c55e" strokeWidth={2} name="Income" />
               <Line type="monotone" dataKey="expenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
             </LineChart>
@@ -396,16 +396,16 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
               <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="bg-white rounded-lg shadow p-6">
                   <p className="text-sm text-gray-600">Total Income</p>
-                  <p className="text-2xl font-bold text-green-600">${(reportData?.totalIncome || 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-green-600">KSh {(reportData?.totalIncome || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-white rounded-lg shadow p-6">
                   <p className="text-sm text-gray-600">Total Expenses</p>
-                  <p className="text-2xl font-bold text-red-600">${(reportData?.totalExpenses || 0).toLocaleString()}</p>
+                  <p className="text-2xl font-bold text-red-600">KSh {(reportData?.totalExpenses || 0).toLocaleString()}</p>
                 </div>
                 <div className="bg-white rounded-lg shadow p-6">
                   <p className="text-sm text-gray-600">Net Profit</p>
                   <p className={`text-2xl font-bold ${(reportData?.netProfit || 0) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${(reportData?.netProfit || 0).toLocaleString()}
+                    KSh {(reportData?.netProfit || 0).toLocaleString()}
                   </p>
                 </div>
                 <div className="bg-white rounded-lg shadow p-6">
@@ -424,7 +424,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                         <div key={category}>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="text-gray-700">{category}</span>
-                            <span className="font-medium text-gray-900">${(amount || 0).toLocaleString()} ({percentage}%)</span>
+                            <span className="font-medium text-gray-900">KSh {(amount || 0).toLocaleString()} ({percentage}%)</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div className="bg-green-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
@@ -444,7 +444,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                         <div key={category}>
                           <div className="flex justify-between text-sm mb-1">
                             <span className="text-gray-700">{category}</span>
-                            <span className="font-medium text-gray-900">${(amount || 0).toLocaleString()} ({percentage}%)</span>
+                            <span className="font-medium text-gray-900">KSh {(amount || 0).toLocaleString()} ({percentage}%)</span>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-2">
                             <div className="bg-red-600 h-2 rounded-full" style={{ width: `${percentage}%` }} />
@@ -469,7 +469,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                       <CartesianGrid strokeDasharray="3 3" />
                       <XAxis dataKey="month" />
                       <YAxis />
-                      <Tooltip formatter={(value: any) => `$${value.toLocaleString()}`} />
+                      <Tooltip formatter={(value: any) => `KSh ${value.toLocaleString()}`} />
                       <Line type="monotone" dataKey="projectedIncome" stroke="#22c55e" strokeWidth={2} name="Income" />
                       <Line type="monotone" dataKey="projectedExpenses" stroke="#ef4444" strokeWidth={2} name="Expenses" />
                       <Line type="monotone" dataKey="projectedProfit" stroke="#3b82f6" strokeWidth={2} name="Profit" strokeDasharray="5 5" />
@@ -529,7 +529,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <span className={record.type === 'income' ? 'text-green-600' : 'text-red-600'}>
-                      {record.type === 'income' ? '+' : '-'}${record.amount.toLocaleString()}
+                      {record.type === 'income' ? '+' : '-'}KSh {record.amount.toLocaleString()}
                     </span>
                   </td>
                 </tr>
@@ -556,10 +556,13 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 category: formData.get('category') as string,
                 amount: parseFloat(formData.get('amount') as string),
                 description: formData.get('description') as string,
-                date: new Date(formData.get('date') as string),
-                fieldId: farmId || undefined,
-                fieldName: selectedFarm?.name || undefined
+                date: new Date(formData.get('date') as string)
               };
+              
+              if (farmId) {
+                recordData.fieldId = farmId;
+                recordData.fieldName = selectedFarm?.name;
+              }
               
               if (recordType === 'income') {
                 recordData.item = formData.get('item') as string;
@@ -630,7 +633,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                     ))}
                   </select>
                 </div>
-                {recordType === 'income' && (selectedCategory === 'Crop Sales' || selectedCategory === 'Livestock Sales') && (
+                {recordType === 'income' && (selectedCategory === 'Crop Sales' || selectedCategory === 'Livestock/Livestock Products Sale') && (
                   <>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Item/Commodity</label>
@@ -656,7 +659,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price ($)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Unit Price (KSh)</label>
                         <input
                           type="number"
                           name="unitPrice"
@@ -673,7 +676,7 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount ($)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (KSh)</label>
                     <input
                       type="number"
                       name="amount"

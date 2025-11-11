@@ -435,10 +435,10 @@ const Farms: React.FC = () => {
           </button>
         </div>
 
-        <div className="border-b bg-white">
-          <div className="flex space-x-1 px-4">
+        <div className="border-b bg-white overflow-x-auto">
+          <div className="flex space-x-1 px-4 min-w-max">
             {[{ id: 'overview', label: 'Overview', icon: Layers }, { id: 'operations', label: 'Operations', icon: Calendar }, { id: 'health', label: 'Soil Health', icon: TrendingUp }].map(tab => (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-4 py-3 font-medium text-sm flex items-center space-x-2 border-b-2 ${activeTab === tab.id ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+              <button key={tab.id} onClick={() => setActiveTab(tab.id as any)} className={`px-3 md:px-4 py-3 font-medium text-xs md:text-sm flex items-center space-x-1 md:space-x-2 border-b-2 whitespace-nowrap ${activeTab === tab.id ? 'border-green-600 text-green-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
                 <tab.icon className="h-4 w-4" /><span>{tab.label}</span>
               </button>
             ))}
