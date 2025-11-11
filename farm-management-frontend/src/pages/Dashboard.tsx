@@ -31,6 +31,9 @@ const Dashboard: React.FC = () => {
   });
   const [fieldFinancials, setFieldFinancials] = useState<FieldFinancial[]>([]);
   const [financialRecords, setFinancialRecords] = useState<any[]>([]);
+  const [farms, setFarms] = useState<any[]>([]);
+  const [crops, setCrops] = useState<any[]>([]);
+  const [tasks, setTasks] = useState<any[]>([]);
 
   useEffect(() => {
     fetchDashboardStats();
@@ -56,12 +59,27 @@ const Dashboard: React.FC = () => {
       setFinancialRecords(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
     
+    const unsubscribeFarms = onSnapshot(collection(db, 'farms'), (snapshot) => {
+      setFarms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    
+    const unsubscribeCropsData = onSnapshot(collection(db, 'crops'), (snapshot) => {
+      setCrops(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    
+    const unsubscribeTasksData = onSnapshot(collection(db, 'tasks'), (snapshot) => {
+      setTasks(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    
     return () => {
       unsubscribeFields();
       unsubscribeCrops();
       unsubscribeTasks();
       unsubscribeInventory();
       unsubscribeFinancial();
+      unsubscribeFarms();
+      unsubscribeCropsData();
+      unsubscribeTasksData();
     };
   }, []);
 
@@ -74,13 +92,6 @@ const Dashboard: React.FC = () => {
       monthlyRevenue: 65000,
       monthlyExpenses: 42000
     });
-    
-    setFieldFinancials([
-      { fieldName: 'North Field', income: 25000, expenses: 15000, profit: 10000 },
-      { fieldName: 'South Field', income: 20000, expenses: 12000, profit: 8000 },
-      { fieldName: 'East Field', income: 15000, expenses: 10000, profit: 5000 },
-      { fieldName: 'West Field', income: 5000, expenses: 5000, profit: 0 }
-    ]);
   };
 
   // Calculate financial KPIs
@@ -168,12 +179,12 @@ const Dashboard: React.FC = () => {
         {statCards.map((card, index) => {
           const Icon = card.icon;
           return (
-            <div key={index} className="bg-white rounded-lg shadow-xl shadow-green-400 p-6">
+            <div key={index} className="bg-white rounded-lg shadow p-6">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium text-gray-600">{card.title}</p>
-                  <p className="text-3xl font-bold text-gray-900">{card.value}</p>
-                  <p className="text-sm text-gray-500 mt-1">{card.change}</p>
+                  <p className="text-xl font-bold text-gray-900">{card.value}</p>
+                  <p className="text-xs text-gray-500 mt-1">{card.change}</p>
                 </div>
                 <div className={`${card.color} p-3 rounded-lg`}>
                   <Icon className="h-6 w-6 text-white" />
@@ -230,25 +241,6 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Financial Summary */}
-      <div className="bg-white rounded-lg shadow p-4 md:p-6">
-        <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Financial Summary</h3>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          <div className="text-center p-3 md:p-4 bg-green-50 rounded-lg">
-            <p className="text-xl md:text-2xl font-bold text-green-600">${stats.monthlyRevenue.toLocaleString()}</p>
-            <p className="text-xs md:text-sm text-gray-600">Total Income</p>
-          </div>
-          <div className="text-center p-3 md:p-4 bg-red-50 rounded-lg">
-            <p className="text-xl md:text-2xl font-bold text-red-600">${stats.monthlyExpenses.toLocaleString()}</p>
-            <p className="text-xs md:text-sm text-gray-600">Total Expenses</p>
-          </div>
-          <div className="text-center p-3 md:p-4 bg-blue-50 rounded-lg">
-            <p className="text-xl md:text-2xl font-bold text-blue-600">${(stats.monthlyRevenue - stats.monthlyExpenses).toLocaleString()}</p>
-            <p className="text-xs md:text-sm text-gray-600">Net Profit</p>
-          </div>
-        </div>
-      </div>
-
       {/* Recent Activity & Field Performance */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Activity */}
@@ -258,54 +250,66 @@ const Dashboard: React.FC = () => {
             <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
               <MapPin className="h-5 w-5 text-green-600 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">New Field Added</p>
-                <p className="text-sm text-gray-600">{stats.totalFields} total fields</p>
-                <p className="text-xs text-gray-500">Just now</p>
+                <p className="font-medium text-gray-900">Total Farms</p>
+                <p className="text-sm text-gray-600">{farms.length} farms registered</p>
+                <p className="text-xs text-gray-500">Real-time</p>
               </div>
             </div>
             <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
               <Wheat className="h-5 w-5 text-blue-600 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Crop Status Updated</p>
-                <p className="text-sm text-gray-600">{stats.activeCrops} active crops</p>
+                <p className="font-medium text-gray-900">Active Crops</p>
+                <p className="text-sm text-gray-600">{crops.filter(c => c.status === 'growing' || c.status === 'active').length} crops growing</p>
                 <p className="text-xs text-gray-500">Live updates</p>
               </div>
             </div>
             <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
               <CheckSquare className="h-5 w-5 text-yellow-600 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">Tasks Pending</p>
-                <p className="text-sm text-gray-600">{stats.pendingTasks} tasks need attention</p>
+                <p className="font-medium text-gray-900">Pending Tasks</p>
+                <p className="text-sm text-gray-600">{tasks.filter(t => t.status !== 'completed').length} tasks need attention</p>
                 <p className="text-xs text-gray-500">Updated now</p>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Field Performance */}
+        {/* Farm Performance */}
         <div className="bg-white rounded-lg shadow p-4 md:p-6">
-          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Field Performance</h3>
-          {fieldFinancials.length > 0 ? (
+          <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-4">Farm Performance</h3>
+          {farms.length > 0 ? (
             <div className="space-y-3">
-              {fieldFinancials.slice(0, 5).map((field, index) => (
-                <div key={index} className="p-3 bg-gray-50 rounded-lg">
-                  <div className="flex justify-between items-center mb-1">
-                    <p className="font-medium text-gray-900">{field.fieldName}</p>
-                    <span className={`text-sm font-semibold ${
-                      field.profit >= 0 ? 'text-green-600' : 'text-red-600'
-                    }`}>
-                      ${field.profit.toLocaleString()}
-                    </span>
+              {farms.slice(0, 5).map((farm) => {
+                const farmIncome = financialRecords
+                  .filter(r => r.type === 'income' && r.fieldId === farm.id)
+                  .reduce((sum, r) => sum + (r.amount || 0), 0);
+                
+                const farmExpenses = financialRecords
+                  .filter(r => r.type === 'expense' && r.fieldId === farm.id)
+                  .reduce((sum, r) => sum + (r.amount || 0), 0);
+                
+                const farmProfit = farmIncome - farmExpenses;
+                
+                return (
+                  <div key={farm.id} className="p-3 bg-gray-50 rounded-lg">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="font-medium text-gray-900">{farm.name}</p>
+                      <span className={`text-sm font-semibold ${
+                        farmProfit >= 0 ? 'text-green-600' : 'text-red-600'
+                      }`}>
+                        KSh {farmProfit.toLocaleString()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-gray-600">
+                      <span>Income: KSh {farmIncome.toLocaleString()}</span>
+                      <span>Expenses: KSh {farmExpenses.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between text-xs text-gray-600">
-                    <span>Income: ${field.income.toLocaleString()}</span>
-                    <span>Expenses: ${field.expenses.toLocaleString()}</span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : (
-            <p className="text-gray-500 text-center py-8">No financial data yet</p>
+            <p className="text-gray-500 text-center py-8">No farms yet</p>
           )}
         </div>
       </div>

@@ -8,9 +8,10 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'worker';
+  role: 'super_admin' | 'admin' | 'manager' | 'worker';
   phone: string;
   status: 'active' | 'inactive';
+  assignedFarms?: string[];
   createdAt: Date;
 }
 
@@ -19,13 +20,29 @@ const Users: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    role: 'super_admin' | 'admin' | 'manager' | 'worker';
+    phone: string;
+    status: 'active' | 'inactive';
+    assignedFarms: string[];
+  }>({
     name: '',
     email: '',
-    role: 'worker' as const,
+    role: 'worker',
     phone: '',
-    status: 'active' as const
+    status: 'active',
+    assignedFarms: []
   });
+  const [farms, setFarms] = useState<any[]>([]);
+
+  useEffect(() => {
+    const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
+      setFarms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -43,17 +60,28 @@ const Users: React.FC = () => {
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await addDoc(collection(db, 'users'), {
-        ...newUser,
+      const userData: any = {
+        name: newUser.name,
+        email: newUser.email.toLowerCase(),
+        role: newUser.role,
+        phone: newUser.phone,
+        status: newUser.status,
         password: 'Karibu@123',
         isDefaultPassword: true,
         createdAt: new Date()
-      });
-      setNewUser({ name: '', email: '', role: 'worker', phone: '', status: 'active' });
+      };
+      
+      if (newUser.role === 'admin' || newUser.role === 'manager') {
+        userData.assignedFarms = newUser.assignedFarms;
+      }
+      
+      await addDoc(collection(db, 'users'), userData);
+      setNewUser({ name: '', email: '', role: 'worker', phone: '', status: 'active', assignedFarms: [] });
       setShowAddForm(false);
       showToast('User added successfully', 'success');
-    } catch (error) {
-      showToast('Failed to add user', 'error');
+    } catch (error: any) {
+      console.error('Add user error:', error);
+      showToast(error.message || 'Failed to add user', 'error');
     }
   };
 
@@ -66,7 +94,8 @@ const Users: React.FC = () => {
         email: editingUser.email,
         role: editingUser.role,
         phone: editingUser.phone,
-        status: editingUser.status
+        status: editingUser.status,
+        assignedFarms: (editingUser.role === 'admin' || editingUser.role === 'manager') ? editingUser.assignedFarms : undefined
       });
       setEditingUser(null);
       showToast('User updated successfully', 'success');
@@ -112,11 +141,21 @@ const Users: React.FC = () => {
 
   const getRoleColor = (role: string) => {
     switch (role) {
+      case 'super_admin': return 'bg-purple-100 text-purple-800';
       case 'admin': return 'bg-red-100 text-red-800';
       case 'manager': return 'bg-blue-100 text-blue-800';
-      case 'financial_manager': return 'bg-purple-100 text-purple-800';
       case 'worker': return 'bg-green-100 text-green-800';
       default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getRoleLabel = (role: string) => {
+    switch (role) {
+      case 'super_admin': return 'Super Admin';
+      case 'admin': return 'Admin';
+      case 'manager': return 'Manager';
+      case 'worker': return 'Worker';
+      default: return role;
     }
   };
 
@@ -172,9 +211,33 @@ const Users: React.FC = () => {
             >
               <option value="worker">Worker</option>
               <option value="manager">Manager</option>
-              <option value="financial_manager">Financial Manager</option>
               <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
             </select>
+            {(newUser.role === 'admin' || newUser.role === 'manager') && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assign Farms</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {farms.map(farm => (
+                    <label key={farm.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={newUser.assignedFarms.includes(farm.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setNewUser({ ...newUser, assignedFarms: [...newUser.assignedFarms, farm.id] });
+                          } else {
+                            setNewUser({ ...newUser, assignedFarms: newUser.assignedFarms.filter(id => id !== farm.id) });
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{farm.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2 flex gap-2">
               <button
                 type="submit"
@@ -229,9 +292,34 @@ const Users: React.FC = () => {
             >
               <option value="worker">Worker</option>
               <option value="manager">Manager</option>
-              <option value="financial_manager">Financial Manager</option>
               <option value="admin">Admin</option>
+              <option value="super_admin">Super Admin</option>
             </select>
+            {(editingUser.role === 'admin' || editingUser.role === 'manager') && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">Assign Farms</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {farms.map(farm => (
+                    <label key={farm.id} className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        checked={editingUser.assignedFarms?.includes(farm.id) || false}
+                        onChange={(e) => {
+                          const currentFarms = editingUser.assignedFarms || [];
+                          if (e.target.checked) {
+                            setEditingUser({ ...editingUser, assignedFarms: [...currentFarms, farm.id] });
+                          } else {
+                            setEditingUser({ ...editingUser, assignedFarms: currentFarms.filter(id => id !== farm.id) });
+                          }
+                        }}
+                        className="rounded"
+                      />
+                      <span className="text-sm">{farm.name}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
             <div className="md:col-span-2 flex gap-2">
               <button
                 type="submit"
@@ -274,9 +362,16 @@ const Users: React.FC = () => {
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
-                      {user.role}
-                    </span>
+                    <div>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(user.role)}`}>
+                        {getRoleLabel(user.role)}
+                      </span>
+                      {user.assignedFarms && user.assignedFarms.length > 0 && (
+                        <div className="text-xs text-gray-500 mt-1">
+                          {user.assignedFarms.length} farm(s)
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(user.status)}`}>

@@ -21,14 +21,15 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!socket) {
         const socketUrl = process.env.NODE_ENV === 'production' 
           ? window.location.origin
-          : 'http://localhost:5000';
+          : 'http://localhost:5001';
         
         socket = io(socketUrl, {
           transports: ['websocket', 'polling'],
           autoConnect: true,
           reconnection: true,
           reconnectionDelay: 2000,
-          reconnectionAttempts: 3,
+          reconnectionAttempts: 5,
+          timeout: 10000,
         });
 
         socket.on('connect', () => {

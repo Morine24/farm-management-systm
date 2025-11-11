@@ -244,6 +244,12 @@ const Farms: React.FC = () => {
   const [modalBlocks, setModalBlocks] = useState<Block[]>([]);
   const [modalBeds, setModalBeds] = useState<Bed[]>([]);
   const [isLoadingModalSections, setIsLoadingModalSections] = useState(false);
+  const [expandedFarms, setExpandedFarms] = useState<Set<string>>(new Set());
+  const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set());
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<string>>(new Set());
+  const [farmSections, setFarmSections] = useState<{[key: string]: Section[]}>({});
+  const [sectionBlocks, setSectionBlocks] = useState<{[key: string]: Block[]}>({});
+  const [blockBeds, setBlockBeds] = useState<{[key: string]: Bed[]}>({});
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
@@ -591,40 +597,165 @@ const Farms: React.FC = () => {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {farms.map(farm => (
-                <div 
-                  key={farm.id}
-                  onClick={() => setSelectedFarm(farm)}
-                  className="bg-gradient-to-br from-green-400 to-green-600 rounded-lg p-4 cursor-pointer hover:from-green-500 hover:to-green-700 transition-all duration-200 shadow-md hover:shadow-lg text-white"
-                >
-                  <div className="flex justify-between items-start mb-3">
-                    <h3 className="text-base md:text-lg font-bold truncate flex-1 mr-2">{farm.name}</h3>
-                    <div className="flex space-x-1">
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }}
-                        className="p-1 text-white hover:bg-white hover:bg-opacity-20 rounded transition-colors"
-                        title="Edit"
-                      >
-                        <Edit className="h-3 w-3" />
-                      </button>
-                      <button 
-                        onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }}
-                        className="p-1 text-white hover:bg-red-500 hover:bg-opacity-50 rounded transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="text-green-100 text-sm mb-3">{farm.area} acres</p>
-                  
-                  <div className="text-center">
-                    <span className="text-sm font-medium">Click to manage</span>
-                  </div>
-                </div>
-              ))}
+            <div className="bg-white rounded-lg shadow overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8"></th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Farm Name</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Area</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Soil Type</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">pH Level</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Moisture</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Temperature</th>
+                    <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {farms.map(farm => {
+                    const isExpanded = expandedFarms.has(farm.id);
+                    const sections = farmSections[farm.id] || [];
+                    return (
+                      <React.Fragment key={farm.id}>
+                        <tr className="hover:bg-gray-50">
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <button onClick={async (e) => {
+                              e.stopPropagation();
+                              const newExpanded = new Set(expandedFarms);
+                              if (isExpanded) {
+                                newExpanded.delete(farm.id);
+                              } else {
+                                newExpanded.add(farm.id);
+                                if (!farmSections[farm.id]) {
+                                  const q = query(collection(db, 'sections'), where('farmId', '==', farm.id));
+                                  const snapshot = await onSnapshot(q, (snap) => {
+                                    setFarmSections(prev => ({...prev, [farm.id]: snap.docs.map(d => ({id: d.id, ...d.data()} as Section))}));
+                                  });
+                                }
+                              }
+                              setExpandedFarms(newExpanded);
+                            }} className="text-gray-500 hover:text-gray-700">
+                              {isExpanded ? '▼' : '▶'}
+                            </button>
+                          </td>
+                          <td onClick={() => setSelectedFarm(farm)} className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer">{farm.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.area} acres</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.soilType}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm">
+                            <span className={`font-semibold ${getSoilHealthColor(farm.soilHealth.ph)}`}>{farm.soilHealth.ph}</span>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{farm.soilHealth.moisture}%</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{farm.soilHealth.temperature}°C</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                            <button onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }} className="text-blue-600 hover:text-blue-900 mr-3">
+                              <Edit className="h-4 w-4" />
+                            </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }} className="text-red-600 hover:text-red-900">
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                          </td>
+                        </tr>
+                        {isExpanded && sections.length > 0 && sections.map(section => {
+                          const isSectionExpanded = expandedSections.has(section.id);
+                          const blocks = sectionBlocks[section.id] || [];
+                          return (
+                            <React.Fragment key={section.id}>
+                              <tr className="bg-blue-50">
+                                <td></td>
+                                <td colSpan={7} className="px-6 py-2">
+                                  <div className="ml-4 text-sm flex items-center">
+                                    <button onClick={async (e) => {
+                                      e.stopPropagation();
+                                      const newExpanded = new Set(expandedSections);
+                                      if (isSectionExpanded) {
+                                        newExpanded.delete(section.id);
+                                      } else {
+                                        newExpanded.add(section.id);
+                                        if (!sectionBlocks[section.id]) {
+                                          const blocks = await loadBlocks(section.id);
+                                          setSectionBlocks(prev => ({...prev, [section.id]: blocks}));
+                                        }
+                                      }
+                                      setExpandedSections(newExpanded);
+                                    }} className="text-blue-600 hover:text-blue-800 mr-2">
+                                      {isSectionExpanded ? '▼' : '▶'}
+                                    </button>
+                                    <span className="font-semibold text-blue-900">📁 {section.name}</span>
+                                    <span className="text-blue-600 ml-2">({section.area} acres)</span>
+                                  </div>
+                                </td>
+                              </tr>
+                              {isSectionExpanded && blocks.length > 0 && blocks.map(block => {
+                                const isBlockExpanded = expandedBlocks.has(block.id);
+                                const beds = blockBeds[block.id] || [];
+                                return (
+                                  <React.Fragment key={block.id}>
+                                    <tr className="bg-purple-50">
+                                      <td></td>
+                                      <td colSpan={7} className="px-6 py-2">
+                                        <div className="ml-8 text-sm flex items-center">
+                                          <button onClick={async (e) => {
+                                            e.stopPropagation();
+                                            const newExpanded = new Set(expandedBlocks);
+                                            if (isBlockExpanded) {
+                                              newExpanded.delete(block.id);
+                                            } else {
+                                              newExpanded.add(block.id);
+                                              if (!blockBeds[block.id]) {
+                                                const beds = await loadBeds(block.id);
+                                                setBlockBeds(prev => ({...prev, [block.id]: beds}));
+                                              }
+                                            }
+                                            setExpandedBlocks(newExpanded);
+                                          }} className="text-purple-600 hover:text-purple-800 mr-2">
+                                            {isBlockExpanded ? '▼' : '▶'}
+                                          </button>
+                                          <span className="font-semibold text-purple-900">📦 {block.name}</span>
+                                          <span className="text-purple-600 ml-2">({block.cropType})</span>
+                                        </div>
+                                      </td>
+                                    </tr>
+                                    {isBlockExpanded && beds.length > 0 && beds.map(bed => (
+                                      <tr key={bed.id} className="bg-green-50">
+                                        <td></td>
+                                        <td colSpan={7} className="px-6 py-2">
+                                          <div className="ml-12 text-sm">
+                                            <span className="font-semibold text-green-900">🌱 {bed.name}</span>
+                                            <span className="text-green-600 ml-2">({bed.length}m × {bed.width}m)</span>
+                                            <span className="text-green-700 ml-2 font-medium">• Crop: {bed.cropType || 'None'}</span>
+                                          </div>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                    {isBlockExpanded && beds.length === 0 && (
+                                      <tr className="bg-gray-50">
+                                        <td></td>
+                                        <td colSpan={7} className="px-6 py-2 ml-12 text-sm text-gray-500 italic">No beds in this block</td>
+                                      </tr>
+                                    )}
+                                  </React.Fragment>
+                                );
+                              })}
+                              {isSectionExpanded && blocks.length === 0 && (
+                                <tr className="bg-gray-50">
+                                  <td></td>
+                                  <td colSpan={7} className="px-6 py-2 ml-8 text-sm text-gray-500 italic">No blocks in this section</td>
+                                </tr>
+                              )}
+                            </React.Fragment>
+                          );
+                        })}
+                        {isExpanded && sections.length === 0 && (
+                          <tr className="bg-gray-50">
+                            <td></td>
+                            <td colSpan={7} className="px-6 py-2 text-sm text-gray-500 italic">No sections</td>
+                          </tr>
+                        )}
+                      </React.Fragment>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </div>

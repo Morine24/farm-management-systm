@@ -4,17 +4,21 @@ interface User {
   id: string;
   name: string;
   email: string;
-  role: 'admin' | 'manager' | 'worker' | 'financial_manager';
+  role: 'super_admin' | 'admin' | 'manager' | 'worker';
   status: string;
+  assignedFarms?: string[];
 }
 
 interface UserContextType {
   user: User | null;
   setUser: (user: User | null) => void;
+  isSuperAdmin: boolean;
+  isAdmin: boolean;
   isManager: boolean;
   isWorker: boolean;
-  isFinancialManager: boolean;
-  isAdmin: boolean;
+  canManageFarm: (farmId: string) => boolean;
+  canViewFinancials: boolean;
+  canManageUsers: boolean;
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
@@ -33,19 +37,33 @@ export const UserProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   }, [user]);
 
-  const isManager = user?.role === 'manager' || user?.role === 'admin';
+  const isSuperAdmin = user?.role === 'super_admin';
+  const isAdmin = user?.role === 'admin' || isSuperAdmin;
+  const isManager = user?.role === 'manager' || isAdmin;
   const isWorker = user?.role === 'worker';
-  const isFinancialManager = user?.role === 'financial_manager';
-  const isAdmin = user?.role === 'admin';
+  
+  const canManageFarm = (farmId: string) => {
+    if (isSuperAdmin) return true;
+    if (user?.role === 'admin' || user?.role === 'manager') {
+      return !user.assignedFarms || user.assignedFarms.includes(farmId);
+    }
+    return false;
+  };
+  
+  const canViewFinancials = isSuperAdmin || user?.role === 'admin' || user?.role === 'manager';
+  const canManageUsers = isSuperAdmin || user?.role === 'admin';
 
   return (
     <UserContext.Provider value={{
       user,
       setUser,
+      isSuperAdmin,
+      isAdmin,
       isManager,
       isWorker,
-      isFinancialManager,
-      isAdmin
+      canManageFarm,
+      canViewFinancials,
+      canManageUsers
     }}>
       {children}
     </UserContext.Provider>

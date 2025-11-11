@@ -24,6 +24,7 @@ import Livestock from './pages/Livestock';
 import LivestockInventory from './pages/LivestockInventory';
 import Analytics from './pages/Analytics';
 import InstallPWA from './components/InstallPWA';
+import OfflineIndicator from './components/OfflineIndicator';
 
 class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: boolean}> {
   constructor(props: {children: React.ReactNode}) {
@@ -60,7 +61,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: bo
 }
 
 const AppRoutes: React.FC = () => {
-  const { user, isWorker, isFinancialManager } = useUser();
+  const { user, isSuperAdmin, isAdmin, isManager, isWorker, canManageUsers } = useUser();
 
   useEffect(() => {
     if (user) {
@@ -79,7 +80,6 @@ const AppRoutes: React.FC = () => {
 
   const getDashboard = () => {
     if (isWorker) return <WorkerDashboard />;
-    if (isFinancialManager) return <FinancialDashboard />;
     return <Dashboard />;
   };
 
@@ -90,33 +90,22 @@ const AppRoutes: React.FC = () => {
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/crops" element={<Crops />} />
-        <Route path="/livestock" element={<Livestock />} />
-        {!isWorker && (
+        <Route path="/weather" element={<Weather />} />
+        {(isManager || isAdmin) && (
           <>
             <Route path="/farms" element={<Farms />} />
             <Route path="/add-section" element={<AddSection />} />
-            <Route path="/weather" element={<Weather />} />
-          </>
-        )}
-        <Route path="/inventory" element={<Inventory />} />
-        <Route path="/financial" element={<Financial />} />
-        {!isWorker && (
-          <Route path="/labour" element={<Labour />} />
-        )}
-        {!isWorker && (
-          <>
+            <Route path="/inventory" element={<Inventory />} />
+            <Route path="/financial" element={<Financial />} />
+            <Route path="/labour" element={<Labour />} />
             <Route path="/livestock" element={<Livestock />} />
             <Route path="/livestock-inventory" element={<LivestockInventory />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/analytics" element={<Analytics />} />
           </>
         )}
-        {!isWorker && !isFinancialManager && (
+        {isAdmin && (
           <Route path="/users" element={<Users />} />
-        )}
-        {!isWorker && (
-          <Route path="/reports" element={<Reports />} />
-        )}
-        {!isWorker && (
-          <Route path="/analytics" element={<Analytics />} />
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
@@ -131,6 +120,7 @@ function App() {
         <UserProvider>
           <SocketProvider>
             <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
+              <OfflineIndicator />
               <AppRoutes />
               <InstallPWA />
             </Router>

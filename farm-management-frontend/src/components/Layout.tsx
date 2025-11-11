@@ -31,7 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, setUser, isManager, isWorker, isFinancialManager } = useUser();
+  const { user, setUser, isSuperAdmin, isAdmin, isManager, isWorker, canManageUsers } = useUser();
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -45,43 +45,33 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
 
   const getNavigation = () => {
-    const baseNav = [{ name: 'Dashboard', href: '/', icon: Home }];
+    const nav = [{ name: 'Dashboard', href: '/', icon: Home }];
     
     if (isWorker) {
-      return [
-        ...baseNav,
+      nav.push(
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Crops', href: '/crops', icon: Wheat },
-        { name: 'Livestock', href: '/livestock', icon: Beef },
-      ];
-    }
-    
-    if (isFinancialManager) {
-      return [
-        ...baseNav,
-        { name: 'Finance', href: '/financial', icon: DollarSign },
-        { name: 'Inventory', href: '/inventory', icon: Package },
-      ];
-    }
-    
-    if (isManager) {
-      return [
-        ...baseNav,
+        { name: 'Weather', href: '/weather', icon: Cloud }
+      );
+    } else if (isManager || isAdmin) {
+      nav.push(
         { name: 'Farms', href: '/farms', icon: Map },
         { name: 'Crops', href: '/crops', icon: Wheat },
-        { name: 'Livestock', href: '/livestock', icon: Beef },
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Inventory', href: '/inventory', icon: Package },
         { name: 'Finance', href: '/financial', icon: DollarSign },
         { name: 'Labour', href: '/labour', icon: Briefcase },
         { name: 'Weather', href: '/weather', icon: Cloud },
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
-        { name: 'Reports', href: '/reports', icon: FileText },
-        { name: 'Staffing', href: '/users', icon: Users },
-      ];
+        { name: 'Reports', href: '/reports', icon: FileText }
+      );
+      
+      if (isAdmin) {
+        nav.push({ name: 'Staffing', href: '/users', icon: Users });
+      }
     }
     
-    return baseNav;
+    return nav;
   };
   
   const navigation = getNavigation();
