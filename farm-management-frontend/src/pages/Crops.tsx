@@ -71,6 +71,8 @@ const Crops: React.FC = () => {
   const [editingCrop, setEditingCrop] = useState<Crop | null>(null);
   const [filterFarm, setFilterFarm] = useState<string>('');
   const [selectedCrop, setSelectedCrop] = useState<string>('');
+  const [customCrop, setCustomCrop] = useState<string>('');
+  const [showCustomCrop, setShowCustomCrop] = useState(false);
   const [plantingDate, setPlantingDate] = useState<string>('');
   const [autoHarvestDate, setAutoHarvestDate] = useState<string>('');
   const [viewingCrop, setViewingCrop] = useState<Crop | null>(null);
@@ -418,24 +420,43 @@ const Crops: React.FC = () => {
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Crop Variety</label>
-                <input
-                  list="crop-list"
-                  name="variety" 
-                  defaultValue={editingCrop?.variety}
-                  required 
-                  className="w-full px-3 py-2 border rounded-lg"
-                  placeholder="Select or type crop name"
+                <select
+                  name="cropSelect"
+                  value={showCustomCrop ? 'other' : selectedCrop}
                   onChange={(e) => {
-                    setSelectedCrop(e.target.value);
-                    if (plantingDate && e.target.value) {
-                      const harvestDate = calculateHarvestDate(plantingDate, e.target.value);
-                      setAutoHarvestDate(harvestDate);
+                    if (e.target.value === 'other') {
+                      setShowCustomCrop(true);
+                      setSelectedCrop('');
+                    } else {
+                      setShowCustomCrop(false);
+                      setSelectedCrop(e.target.value);
+                      if (plantingDate && e.target.value) {
+                        const harvestDate = calculateHarvestDate(plantingDate, e.target.value);
+                        setAutoHarvestDate(harvestDate);
+                      }
                     }
                   }}
-                />
-                <datalist id="crop-list">
-                  {getCropList().map(crop => <option key={crop} value={crop} />)}
-                </datalist>
+                  className="w-full px-3 py-2 border rounded-lg"
+                  required={!showCustomCrop}
+                >
+                  <option value="">Select Crop</option>
+                  {getCropList().map(crop => <option key={crop} value={crop}>{crop}</option>)}
+                  <option value="other">Other (Type custom crop)</option>
+                </select>
+                {showCustomCrop && (
+                  <input
+                    type="text"
+                    value={customCrop}
+                    onChange={(e) => {
+                      setCustomCrop(e.target.value);
+                      setSelectedCrop(e.target.value);
+                    }}
+                    placeholder="Enter crop name"
+                    className="w-full px-3 py-2 border rounded-lg mt-2"
+                    required
+                  />
+                )}
+                <input type="hidden" name="variety" value={showCustomCrop ? customCrop : selectedCrop} />
               </div>
               <div>
                 <label className="block text-sm font-medium mb-1">Section</label>
