@@ -471,7 +471,6 @@ const Reports: React.FC = () => {
               <option value="staff">Daily Staff Report</option>
               <option value="financial">Financial Report</option>
               <option value="crop">Crop Report</option>
-              <option value="task">Task Report</option>
               <option value="inventory">Inventory Report</option>
               <option value="labour">Labour Report</option>
               <option value="contracts">Contracted Work Report</option>
@@ -523,41 +522,146 @@ const Reports: React.FC = () => {
           </div>
 
           {reportData.type === 'financial' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">Total Income</p>
-                <p className="text-2xl font-bold text-green-600">${reportData.income.toFixed(2)}</p>
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Income</p>
+                  <p className="text-2xl font-bold text-green-600">${reportData.income.toFixed(2)}</p>
+                </div>
+                <div className="p-4 bg-red-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Expenses</p>
+                  <p className="text-2xl font-bold text-red-600">${reportData.expenses.toFixed(2)}</p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Net Profit</p>
+                  <p className="text-2xl font-bold text-blue-600">${reportData.profit.toFixed(2)}</p>
+                </div>
               </div>
-              <div className="p-4 bg-red-50 rounded-lg">
-                <p className="text-sm text-gray-600">Total Expenses</p>
-                <p className="text-2xl font-bold text-red-600">${reportData.expenses.toFixed(2)}</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Category</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Amount</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reportData.transactions.sort((a: any, b: any) => {
+                      const dateA = a.date?.toDate ? a.date.toDate() : new Date(a.date);
+                      const dateB = b.date?.toDate ? b.date.toDate() : new Date(b.date);
+                      return dateB.getTime() - dateA.getTime();
+                    }).map((transaction: any) => {
+                      const date = transaction.date?.toDate ? transaction.date.toDate() : new Date(transaction.date);
+                      return (
+                        <tr key={transaction.id}>
+                          <td className="px-4 py-3 text-sm text-gray-900">{date.toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-sm">
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                              transaction.type === 'income' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {transaction.type}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{transaction.category || '-'}</td>
+                          <td className={`px-4 py-3 text-sm font-medium ${
+                            transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
+                          }`}>
+                            ${transaction.amount.toFixed(2)}
+                          </td>
+                          <td className="px-4 py-3 text-sm text-gray-600">{transaction.description || '-'}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td colSpan={3} className="px-4 py-3 text-sm font-bold text-gray-900 text-right">TOTAL INCOME</td>
+                      <td className="px-4 py-3 text-sm font-bold text-green-600">${reportData.income.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                    <tr>
+                      <td colSpan={3} className="px-4 py-3 text-sm font-bold text-gray-900 text-right">TOTAL EXPENSES</td>
+                      <td className="px-4 py-3 text-sm font-bold text-red-600">${reportData.expenses.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                    <tr className="bg-gray-100">
+                      <td colSpan={3} className="px-4 py-3 text-sm font-bold text-gray-900 text-right">NET PROFIT</td>
+                      <td className="px-4 py-3 text-sm font-bold text-blue-600">${reportData.profit.toFixed(2)}</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">Net Profit</p>
-                <p className="text-2xl font-bold text-blue-600">${reportData.profit.toFixed(2)}</p>
-              </div>
-            </div>
+            </>
           )}
 
           {reportData.type === 'crop' && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-600">Total Crops</p>
-                <p className="text-2xl font-bold">{reportData.totalCrops}</p>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Total Crops</p>
+                  <p className="text-2xl font-bold">{reportData.totalCrops}</p>
+                </div>
+                <div className="p-4 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Planted</p>
+                  <p className="text-2xl font-bold text-blue-600">{reportData.planted}</p>
+                </div>
+                <div className="p-4 bg-yellow-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Growing</p>
+                  <p className="text-2xl font-bold text-yellow-600">{reportData.growing}</p>
+                </div>
+                <div className="p-4 bg-green-50 rounded-lg">
+                  <p className="text-sm text-gray-600">Harvested</p>
+                  <p className="text-2xl font-bold text-green-600">{reportData.harvested}</p>
+                </div>
               </div>
-              <div className="p-4 bg-blue-50 rounded-lg">
-                <p className="text-sm text-gray-600">Planted</p>
-                <p className="text-2xl font-bold text-blue-600">{reportData.planted}</p>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Crop Variety</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Planting Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harvest Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Expected Yield (kg)</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {reportData.crops.map((crop: any) => (
+                      <tr key={crop.id}>
+                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{crop.variety}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{crop.farmName}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{crop.sectionName}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{new Date(crop.plantingDate).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{new Date(crop.harvestDate).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-sm text-gray-900">{crop.expectedYield}</td>
+                        <td className="px-4 py-3 text-sm">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            crop.status === 'harvested' ? 'bg-green-100 text-green-800' :
+                            crop.status === 'growing' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {crop.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td colSpan={5} className="px-4 py-3 text-sm font-bold text-gray-900 text-right">TOTAL EXPECTED YIELD</td>
+                      <td className="px-4 py-3 text-sm font-bold text-green-600">{reportData.expectedYield} kg</td>
+                      <td></td>
+                    </tr>
+                  </tfoot>
+                </table>
               </div>
-              <div className="p-4 bg-yellow-50 rounded-lg">
-                <p className="text-sm text-gray-600">Growing</p>
-                <p className="text-2xl font-bold text-yellow-600">{reportData.growing}</p>
-              </div>
-              <div className="p-4 bg-green-50 rounded-lg">
-                <p className="text-sm text-gray-600">Harvested</p>
-                <p className="text-2xl font-bold text-green-600">{reportData.harvested}</p>
-              </div>
-            </div>
+            </>
           )}
 
           {reportData.type === 'task' && (
