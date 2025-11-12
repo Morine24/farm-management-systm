@@ -156,13 +156,18 @@ const Labour: React.FC = () => {
 
   const fetchActiveCheckins = async () => {
     try {
-      const response = await fetch('/api/labour/active-checkins');
-      if (response.ok) {
-        const data = await response.json();
-        setActiveCheckins(Array.isArray(data) ? data : []);
-      }
+      const unsubscribe = onSnapshot(collection(db, 'attendance'), (snapshot) => {
+        const attendanceData = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data(),
+          checkInTime: doc.data().checkInTime?.toDate() || new Date(doc.data().checkInTime),
+          checkOutTime: doc.data().checkOutTime?.toDate() || (doc.data().checkOutTime ? new Date(doc.data().checkOutTime) : null)
+        })) as Attendance[];
+        setActiveCheckins(attendanceData);
+      });
+      return unsubscribe;
     } catch (error) {
-      console.error('Failed to fetch active check-ins:', error);
+      console.error('Failed to fetch attendance records:', error);
     }
   };
 
@@ -184,10 +189,15 @@ const Labour: React.FC = () => {
         : 'http://localhost:5001/api/contracts';
       const method = editingContractId ? 'PUT' : 'POST';
       
+      const contractData = {
+        ...contractForm,
+        cost: contractForm.cost ? parseFloat(contractForm.cost) : null
+      };
+      
       await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(contractForm)
+        body: JSON.stringify(contractData)
       });
       
       fetchContracts();
@@ -273,13 +283,11 @@ const Labour: React.FC = () => {
 
   const checkOut = async (attendanceId: string) => {
     try {
-      const response = await fetch(`/api/labour/checkout/${attendanceId}`, {
-        method: 'PUT'
+      const { updateDoc, doc } = await import('firebase/firestore');
+      await updateDoc(doc(db, 'attendance', attendanceId), {
+        checkOutTime: new Date(),
+        status: 'checked_out'
       });
-      if (response.ok) {
-        fetchActiveCheckins();
-        fetchLabourRecords();
-      }
     } catch (error) {
       console.error('Failed to check out:', error);
     }
@@ -321,13 +329,6 @@ const Labour: React.FC = () => {
       <div className="mb-6">
         <h1 className="text-xl md:text-2xl font-bold text-gray-900 mb-4">Labour Management</h1>
         <div className="flex flex-col sm:flex-row gap-3">
-          <button
-            onClick={() => setShowCheckinModal(true)}
-            className="flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 whitespace-nowrap"
-          >
-            <Clock className="h-4 w-4 mr-2" />
-            Check In/Out
-          </button>
           <button
             onClick={() => setShowWorkerModal(true)}
             className="flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 whitespace-nowrap"
@@ -455,22 +456,24 @@ const Labour: React.FC = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Worker Name</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Check-in Time</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Times</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Location</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Duration</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
                 {activeCheckins.map((checkin) => {
-                  const checkInTime = checkin.checkInTime instanceof Date ? checkin.checkInTime : 
-                                     (checkin.checkInTime as any).toDate ? (checkin.checkInTime as any).toDate() : 
-                                     new Date(checkin.checkInTime);
-                  const duration = ((new Date().getTime() - checkInTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
+                  const checkInTime = checkin.checkInTime;
+                  const checkOutTime = checkin.checkOutTime;
+                  const endTime = checkOutTime || new Date();
+                  const duration = ((endTime.getTime() - checkInTime.getTime()) / (1000 * 60 * 60)).toFixed(1);
                   return (
                     <tr key={checkin.id} className="hover:bg-gray-50">
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{checkin.workerName}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{(checkin as any).workerPhone || 'N/A'}</td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span className={`px-2 py-1 text-xs font-medium rounded-full ${
                           checkin.workerType === 'permanent' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'
@@ -478,16 +481,36 @@ const Labour: React.FC = () => {
                           {checkin.workerType}
                         </span>
                       </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{checkin.farmName || 'General'}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{checkInTime.toLocaleTimeString()}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>
+                          <div>In: {checkInTime.toLocaleTimeString()}</div>
+                          {checkOutTime && <div>Out: {checkOutTime.toLocaleTimeString()}</div>}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <div>
+                          {(checkin as any).checkInLocation && (
+                            <div className="text-xs text-gray-600">In: {(checkin as any).checkInLocation.address}</div>
+                          )}
+                          {(checkin as any).checkOutLocation && (
+                            <div className="text-xs text-gray-600">Out: {(checkin as any).checkOutLocation.address}</div>
+                          )}
+                        </div>
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{duration}h</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm">
-                        <button
-                          onClick={() => checkOut(checkin.id)}
-                          className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                        >
-                          Check Out
-                        </button>
+                        {!checkOutTime ? (
+                          <button
+                            onClick={() => checkOut(checkin.id)}
+                            className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
+                          >
+                            Check Out
+                          </button>
+                        ) : (
+                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded text-xs">
+                            Completed
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
@@ -561,32 +584,9 @@ const Labour: React.FC = () => {
 
         return (
           <>
-            <div className="mb-4 border-b border-gray-200">
-              <nav className="flex space-x-8">
-                <button
-                  onClick={() => setSchedulerView('tasks')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    schedulerView === 'tasks'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Task Schedule
-                </button>
-                <button
-                  onClick={() => setSchedulerView('workplans')}
-                  className={`py-2 px-1 border-b-2 font-medium text-sm ${
-                    schedulerView === 'workplans'
-                      ? 'border-blue-500 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}
-                >
-                  Work Plans
-                </button>
-              </nav>
-            </div>
 
-            {schedulerView === 'workplans' && (
+
+            <div className="space-y-4">
               <div className="space-y-4">
                 <div className="flex justify-end">
                   <button
@@ -696,106 +696,7 @@ const Labour: React.FC = () => {
                   </div>
                 </div>
               </div>
-            )}
-
-            {schedulerView === 'tasks' && (
-            <>
-            <div className="flex justify-between items-center mb-6">
-              <h2 className="text-lg font-semibold text-gray-900">Weekly Task Schedule</h2>
-              <div className="flex items-center space-x-4">
-                <button
-                  onClick={() => {
-                    const newDate = new Date(selectedWeek);
-                    newDate.setDate(newDate.getDate() - 7);
-                    setSelectedWeek(newDate);
-                  }}
-                  className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  ← Previous
-                </button>
-                <span className="font-medium">{selectedWeek.toLocaleDateString()}</span>
-                <button
-                  onClick={() => {
-                    const newDate = new Date(selectedWeek);
-                    newDate.setDate(newDate.getDate() + 7);
-                    setSelectedWeek(newDate);
-                  }}
-                  className="px-3 py-2 bg-gray-200 rounded-lg hover:bg-gray-300"
-                >
-                  Next →
-                </button>
-              </div>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <Calendar className="h-8 w-8 text-blue-600 mb-2" />
-                <p className="text-sm text-gray-600">Scheduled Tasks</p>
-                <p className="text-2xl font-bold text-gray-900">{weekTasks.length}</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <Clock className="h-8 w-8 text-green-600 mb-2" />
-                <p className="text-sm text-gray-600">Est. Hours</p>
-                <p className="text-2xl font-bold text-gray-900">{totalEstimatedHours.toFixed(1)}h</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <DollarSign className="h-8 w-8 text-yellow-600 mb-2" />
-                <p className="text-sm text-gray-600">Est. Cost</p>
-                <p className="text-2xl font-bold text-gray-900">KSh {totalEstimatedCost.toFixed(2)}</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <TrendingUp className="h-8 w-8 text-purple-600 mb-2" />
-                <p className="text-sm text-gray-600">Actual Cost</p>
-                <p className="text-2xl font-bold text-gray-900">KSh {totalActualCost.toFixed(2)}</p>
-              </div>
-            </div>
-
-            <div className="bg-white rounded-lg shadow p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Worker Schedule & Costs</h3>
-              <div className="space-y-4">
-                {workerSchedule.map(({ worker, tasks: workerTasks, totalHours, totalCost }) => (
-                  <div key={worker.id} className="border rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h4 className="font-semibold text-gray-900">{worker.name}</h4>
-                        <p className="text-sm text-gray-600">{worker.type} • KSh {worker.ratePerHour}/hour</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-gray-600">Total: <span className="font-medium">{totalHours.toFixed(1)}h</span></p>
-                        <p className="text-sm text-gray-600">Cost: <span className="font-medium text-green-600">KSh {totalCost.toFixed(2)}</span></p>
-                      </div>
-                    </div>
-                    {workerTasks.length > 0 ? (
-                      <div className="space-y-2">
-                        {workerTasks.map(task => (
-                          <div key={task.id} className="flex justify-between items-center bg-gray-50 p-3 rounded">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{task.type}</p>
-                              <p className="text-xs text-gray-600">{task.farmName} • {new Date(task.dueDate).toLocaleDateString()}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-sm text-gray-900">{task.estimatedHours}h</p>
-                              <p className="text-xs text-gray-600">KSh {(task.labourCost || 0).toFixed(2)}</p>
-                              <span className={`text-xs px-2 py-1 rounded-full ${
-                                task.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                task.status === 'in_progress' ? 'bg-blue-100 text-blue-800' :
-                                'bg-yellow-100 text-yellow-800'
-                              }`}>
-                                {task.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-sm text-gray-500 text-center py-2">No tasks scheduled</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            </>
-            )}
           </>
         );
       })()}
@@ -927,7 +828,7 @@ const Labour: React.FC = () => {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-sm font-medium text-gray-900">
-                        {contract.cost ? `KSh ${contract.cost.toLocaleString()}` : '-'}
+                        {contract.cost && contract.cost > 0 ? `KSh ${Number(contract.cost).toLocaleString()}` : '-'}
                       </td>
                       <td className="px-4 py-3 text-sm">
                         <div className="flex gap-2">

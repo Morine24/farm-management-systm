@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, where, addDoc, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useUser } from '../contexts/UserContext';
-import { CheckSquare, Clock, AlertCircle, Wheat, Beef } from 'lucide-react';
+import { useToast } from '../contexts/ToastContext';
+import { CheckSquare, Clock, AlertCircle, Wheat, Beef, MapPin } from 'lucide-react';
 
 interface Task {
   id: string;
@@ -21,6 +22,10 @@ const WorkerDashboard: React.FC = () => {
   const [animals, setAnimals] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<'tasks' | 'crops' | 'livestock'>('tasks');
   const { user } = useUser();
+  const { showToast } = useToast();
+  const [checkInLoading, setCheckInLoading] = useState(false);
+  const [currentAttendance, setCurrentAttendance] = useState<any>(null);
+  const [showLocationHelp, setShowLocationHelp] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -91,18 +96,57 @@ const WorkerDashboard: React.FC = () => {
     checkAttendanceStatus();
   }, [user]);
 
+  const getCurrentLocation = (): Promise<{latitude: number, longitude: number, address?: string}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+      
+      // Try high accuracy first, then fallback to lower accuracy
+      const tryLocation = (highAccuracy: boolean) => {
+        navigator.geolocation.getCurrentPosition(
+          async (position) => {
+            const { latitude, longitude } = position.coords;
+            resolve({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
+          },
+          (error) => {
+            if (highAccuracy) {
+              // Retry with lower accuracy settings
+              tryLocation(false);
+            } else {
+              reject(error);
+            }
+          },
+          { 
+            enableHighAccuracy: highAccuracy, 
+            timeout: highAccuracy ? 15000 : 30000, 
+            maximumAge: highAccuracy ? 60000 : 300000 
+          }
+        );
+      };
+      
+      tryLocation(true);
+    });
+  };
+
   const checkAttendanceStatus = async () => {
     if (!user) return;
     try {
-      const response = await fetch('/api/labour/active-checkins');
-      if (response.ok) {
-        const data = await response.json();
-        const myCheckin = data.find((c: any) => c.workerName === user.name);
-        if (myCheckin) {
+      const q = query(collection(db, 'attendance'), where('workerName', '==', user.name), where('checkOutTime', '==', null));
+      const snapshot = await onSnapshot(q, (querySnapshot) => {
+        if (!querySnapshot.empty) {
+          const docData = querySnapshot.docs[0];
+          const attendanceData = { id: docData.id, ...docData.data() };
           setIsCheckedIn(true);
-          setCurrentAttendanceId(myCheckin.id);
+          setCurrentAttendanceId(docData.id);
+          setCurrentAttendance(attendanceData);
+        } else {
+          setIsCheckedIn(false);
+          setCurrentAttendanceId(null);
+          setCurrentAttendance(null);
         }
-      }
+      });
     } catch (error) {
       console.error('Failed to check attendance:', error);
     }
@@ -110,38 +154,97 @@ const WorkerDashboard: React.FC = () => {
 
   const handleCheckIn = async () => {
     if (!user) return;
+    setCheckInLoading(true);
+    
     try {
-      const response = await fetch('/api/labour/checkin', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workerId: user.id || user.name,
-          workerName: user.name,
-          workerType: 'permanent'
-        })
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setIsCheckedIn(true);
-        setCurrentAttendanceId(data.id);
+      let locationData = {};
+      
+      try {
+        const location = await getCurrentLocation();
+        locationData = {
+          checkInLocation: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            address: location.address,
+            timestamp: new Date()
+          }
+        };
+        showToast(`Location captured: ${location.address}`, 'success');
+      } catch (error) {
+        console.error('Location error:', error);
+        const errorMsg = error instanceof GeolocationPositionError ? 
+          `Location error: ${error.message}. Try moving to an open area or refresh the page.` :
+          'Location access denied. Please enable location and try again.';
+        showToast(errorMsg, 'error');
+        setCheckInLoading(false);
+        return; // Stop check-in process
       }
+      
+      const attendanceData = {
+        workerId: user.id || user.name,
+        workerName: user.name,
+        workerPhone: (user as any).phone || 'N/A',
+        workerType: 'permanent',
+        checkInTime: new Date(),
+        checkOutTime: null,
+        ...locationData
+      };
+      
+      const docRef = await addDoc(collection(db, 'attendance'), attendanceData);
+      
+      setIsCheckedIn(true);
+      setCurrentAttendanceId(docRef.id);
+      setCurrentAttendance({ id: docRef.id, ...attendanceData });
+      showToast('Successfully checked in!', 'success');
     } catch (error) {
       console.error('Failed to check in:', error);
+      showToast('Failed to check in. Please try again.', 'error');
+    } finally {
+      setCheckInLoading(false);
     }
   };
 
   const handleCheckOut = async () => {
     if (!currentAttendanceId) return;
+    setCheckInLoading(true);
+    
     try {
-      const response = await fetch(`/api/labour/checkout/${currentAttendanceId}`, {
-        method: 'PUT'
-      });
-      if (response.ok) {
-        setIsCheckedIn(false);
-        setCurrentAttendanceId(null);
+      let locationData = {};
+      
+      try {
+        const location = await getCurrentLocation();
+        locationData = {
+          checkOutLocation: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            address: location.address,
+            timestamp: new Date()
+          }
+        };
+        showToast(`Location captured: ${location.address}`, 'success');
+      } catch (error) {
+        console.error('Location error:', error);
+        const errorMsg = error instanceof GeolocationPositionError ? 
+          `Location error: ${error.message}. Try moving to an open area or refresh the page.` :
+          'Location access denied. Please enable location and try again.';
+        showToast(errorMsg, 'error');
+        setCheckInLoading(false);
+        return; // Stop check-out process
       }
+      
+      await updateDoc(doc(db, 'attendance', currentAttendanceId), {
+        checkOutTime: new Date(),
+        ...locationData
+      });
+      
+      setIsCheckedIn(false);
+      setCurrentAttendanceId(null);
+      showToast('Successfully checked out!', 'success');
     } catch (error) {
       console.error('Failed to check out:', error);
+      showToast('Failed to check out. Please try again.', 'error');
+    } finally {
+      setCheckInLoading(false);
     }
   };
 
@@ -156,29 +259,75 @@ const WorkerDashboard: React.FC = () => {
           {!isCheckedIn ? (
             <button
               onClick={handleCheckIn}
-              className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg"
+              disabled={checkInLoading}
+              className="flex items-center px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Clock className="h-5 w-5 mr-2" />
-              Check In
+              {checkInLoading ? (
+                <Clock className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <MapPin className="h-5 w-5 mr-2" />
+              )}
+              {checkInLoading ? 'Getting Location...' : 'Check In'}
             </button>
           ) : (
             <button
               onClick={handleCheckOut}
-              className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-lg"
+              disabled={checkInLoading}
+              className="flex items-center px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <Clock className="h-5 w-5 mr-2" />
-              Check Out
+              {checkInLoading ? (
+                <Clock className="h-5 w-5 mr-2 animate-spin" />
+              ) : (
+                <MapPin className="h-5 w-5 mr-2" />
+              )}
+              {checkInLoading ? 'Getting Location...' : 'Check Out'}
             </button>
           )}
         </div>
       </div>
 
       {/* Attendance Status Card */}
-      {isCheckedIn && (
+      {isCheckedIn && currentAttendance && (
         <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded-lg">
-          <div className="flex items-center">
-            <Clock className="h-5 w-5 text-green-600 mr-2" />
-            <p className="text-green-800 font-medium">You are currently checked in</p>
+          <div className="space-y-3">
+            <div className="flex items-center">
+              <Clock className="h-5 w-5 text-green-600 mr-2" />
+              <p className="text-green-800 font-medium">You are currently checked in</p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <p className="text-gray-600">Worker: <span className="font-medium text-gray-900">{currentAttendance.workerName}</span></p>
+                <p className="text-gray-600">Phone: <span className="font-medium text-gray-900">{currentAttendance.workerPhone}</span></p>
+              </div>
+              <div>
+                <p className="text-gray-600">Check-in Time: <span className="font-medium text-gray-900">
+                  {currentAttendance.checkInTime?.toDate ? 
+                    currentAttendance.checkInTime.toDate().toLocaleString() : 
+                    new Date(currentAttendance.checkInTime).toLocaleString()}
+                </span></p>
+                {currentAttendance.checkInLocation && (
+                  <p className="text-gray-600">Location: <span className="font-medium text-gray-900">{currentAttendance.checkInLocation.address}</span></p>
+                )}
+              </div>
+            </div>
+            {currentAttendance.checkOutTime && (
+              <div className="border-t pt-3 mt-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <p className="text-gray-600">Check-out Time: <span className="font-medium text-gray-900">
+                      {currentAttendance.checkOutTime?.toDate ? 
+                        currentAttendance.checkOutTime.toDate().toLocaleString() : 
+                        new Date(currentAttendance.checkOutTime).toLocaleString()}
+                    </span></p>
+                  </div>
+                  <div>
+                    {currentAttendance.checkOutLocation && (
+                      <p className="text-gray-600">Checkout Location: <span className="font-medium text-gray-900">{currentAttendance.checkOutLocation.address}</span></p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -426,6 +575,53 @@ const WorkerDashboard: React.FC = () => {
                 ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Location Help Modal */}
+      {showLocationHelp && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h2 className="text-xl font-semibold mb-4 text-red-600">Location Access Required</h2>
+            <div className="space-y-4 text-sm">
+              <p className="text-gray-700">To check in/out, you must enable location access. Follow these steps:</p>
+              
+              <div className="bg-blue-50 p-3 rounded">
+                <p className="font-medium text-blue-800">Desktop Browser:</p>
+                <ol className="list-decimal list-inside text-blue-700 mt-1 space-y-1">
+                  <li>Click the 🔒 lock icon in the address bar</li>
+                  <li>Find "Location" and change to "Allow"</li>
+                  <li>Refresh this page</li>
+                </ol>
+              </div>
+              
+              <div className="bg-green-50 p-3 rounded">
+                <p className="font-medium text-green-800">Mobile Browser:</p>
+                <ol className="list-decimal list-inside text-green-700 mt-1 space-y-1">
+                  <li>Tap the 🔒 lock icon next to the URL</li>
+                  <li>Tap "Permissions" → "Location" → "Allow"</li>
+                  <li>Refresh this page</li>
+                </ol>
+              </div>
+              
+              <p className="text-gray-600 text-xs">Location tracking is required for attendance monitoring and security purposes.</p>
+            </div>
+            
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-lg hover:bg-blue-700"
+              >
+                Refresh Page
+              </button>
+              <button
+                onClick={() => setShowLocationHelp(false)}
+                className="flex-1 bg-gray-300 text-gray-700 py-2 px-4 rounded-lg hover:bg-gray-400"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}

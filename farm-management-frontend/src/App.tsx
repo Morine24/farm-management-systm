@@ -91,21 +91,23 @@ const AppRoutes: React.FC = () => {
         <Route path="/tasks" element={<Tasks />} />
         <Route path="/crops" element={<Crops />} />
         <Route path="/weather" element={<Weather />} />
+        <Route path="/livestock" element={<Livestock />} />
+        <Route path="/livestock-inventory" element={<LivestockInventory />} />
         {(isManager || isAdmin) && (
           <>
             <Route path="/farms" element={<Farms />} />
-            <Route path="/add-section" element={<AddSection />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/financial" element={<Financial />} />
             <Route path="/labour" element={<Labour />} />
-            <Route path="/livestock" element={<Livestock />} />
-            <Route path="/livestock-inventory" element={<LivestockInventory />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/analytics" element={<Analytics />} />
           </>
         )}
         {isAdmin && (
-          <Route path="/users" element={<Users />} />
+          <>
+            <Route path="/add-section" element={<AddSection />} />
+            <Route path="/users" element={<Users />} />
+          </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

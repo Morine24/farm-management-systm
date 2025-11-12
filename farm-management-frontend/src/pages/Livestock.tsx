@@ -3,6 +3,7 @@ import { Plus, Edit2, Trash2, Activity, ClipboardList } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useUser } from '../contexts/UserContext';
 
 interface Animal {
   id: string;
@@ -22,6 +23,7 @@ interface Animal {
 }
 
 const Livestock: React.FC = () => {
+  const { isWorker } = useUser();
   const [animals, setAnimals] = useState<Animal[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -216,18 +218,20 @@ const Livestock: React.FC = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Livestock & Poultry Management</h1>
-        <button
-          onClick={() => {
-            if (activeTab === 'animals') setShowModal(true);
-            else if (activeTab === 'inventory') setShowInventoryModal(true);
-            else if (activeTab === 'productivity') setShowProductivityModal(true);
-            else setShowFeedingModal(true);
-          }}
-          className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          {activeTab === 'animals' ? 'Add Animal' : activeTab === 'inventory' ? 'Add Record' : activeTab === 'productivity' ? 'Add Productivity' : 'Add Feeding'}
-        </button>
+        {!isWorker && (
+          <button
+            onClick={() => {
+              if (activeTab === 'animals') setShowModal(true);
+              else if (activeTab === 'inventory') setShowInventoryModal(true);
+              else if (activeTab === 'productivity') setShowProductivityModal(true);
+              else setShowFeedingModal(true);
+            }}
+            className="flex items-center px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            {activeTab === 'animals' ? 'Add Animal' : activeTab === 'inventory' ? 'Add Record' : activeTab === 'productivity' ? 'Add Productivity' : 'Add Feeding'}
+          </button>
+        )}
       </div>
 
       <div className="border-b border-gray-200 overflow-x-auto">
@@ -364,12 +368,18 @@ const Livestock: React.FC = () => {
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{animal.farmName || 'General'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <button onClick={() => { setEditingAnimal(animal); setShowModal(true); }} className="text-blue-600 hover:text-blue-800 mr-3">
-                    <Edit2 className="h-4 w-4" />
-                  </button>
-                  <button onClick={() => handleDelete(animal.id)} className="text-red-600 hover:text-red-800">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {!isWorker ? (
+                    <>
+                      <button onClick={() => { setEditingAnimal(animal); setShowModal(true); }} className="text-blue-600 hover:text-blue-800 mr-3">
+                        <Edit2 className="h-4 w-4" />
+                      </button>
+                      <button onClick={() => handleDelete(animal.id)} className="text-red-600 hover:text-red-800">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-gray-500 text-xs">View Only</span>
+                  )}
                 </td>
               </tr>
             ))}

@@ -25,18 +25,31 @@ const Weather: React.FC = () => {
   const [currentWeather, setCurrentWeather] = useState<WeatherData | null>(null);
   const [forecast, setForecast] = useState<WeatherForecast[]>([]);
   const [alerts, setAlerts] = useState<string[]>([]);
+  const [lastFetch, setLastFetch] = useState<number>(0);
+  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes
 
   useEffect(() => {
     fetchWeatherData();
   }, []);
 
-  const fetchWeatherData = async () => {
+  const fetchWeatherData = async (forceRefresh = false) => {
+    const now = Date.now();
+    
+    // Rate limiting: skip API call if last fetch was within cache duration (unless forced)
+    if (!forceRefresh && now - lastFetch < CACHE_DURATION && currentWeather) {
+      setAlerts(['Using cached data to avoid rate limits. Refresh in ' + Math.ceil((CACHE_DURATION - (now - lastFetch)) / 60000) + ' minutes.']);
+      return;
+    }
+    
     try {
-      const lat = -1.286389; // Nairobi, Kenya
+      const lat = -1.286389;
       const lon = 36.817223;
-      const API_KEY = 'bd5e378503939ddaee76f12ad7a97608'; // OpenWeatherMap API key
+      const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
       
-      // Fetch current weather
+      if (!API_KEY) {
+        throw new Error('Weather API key not configured. Please add REACT_APP_WEATHER_API_KEY to your .env file.');
+      }
+      
       const currentResponse = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${API_KEY}`
       );
@@ -101,33 +114,45 @@ const Weather: React.FC = () => {
         }
         
         setAlerts([]);
+        setLastFetch(now);
       } else {
-        // Fallback to mock data if API fails
-        const mockCurrentWeather: WeatherData = {
-          date: new Date(),
-          temperature: { current: 24, min: 18, max: 28 },
-          humidity: 65,
-          precipitation: 0,
-          windSpeed: 12,
-          conditions: 'Partly Cloudy'
-        };
+        if (currentResponse.status === 429) {
+          throw new Error('API rate limit exceeded. Free tier allows 60 calls/minute. Please wait 1 hour or upgrade your API plan.');
+        } else if (currentResponse.status === 401) {
+          throw new Error('Invalid API key. Please check your OpenWeatherMap API key in .env file.');
+        }
         
-        const mockForecast: WeatherForecast[] = [
-          { date: new Date(Date.now() + 86400000), temperature: { min: 19, max: 26 }, conditions: 'Sunny', precipitation: 0 },
-          { date: new Date(Date.now() + 172800000), temperature: { min: 16, max: 23 }, conditions: 'Rainy', precipitation: 15 },
-          { date: new Date(Date.now() + 259200000), temperature: { min: 20, max: 27 }, conditions: 'Cloudy', precipitation: 5 },
-          { date: new Date(Date.now() + 345600000), temperature: { min: 22, max: 29 }, conditions: 'Sunny', precipitation: 0 },
-          { date: new Date(Date.now() + 432000000), temperature: { min: 18, max: 25 }, conditions: 'Partly Cloudy', precipitation: 2 },
-          { date: new Date(Date.now() + 518400000), temperature: { min: 21, max: 28 }, conditions: 'Sunny', precipitation: 0 },
-          { date: new Date(Date.now() + 604800000), temperature: { min: 19, max: 26 }, conditions: 'Cloudy', precipitation: 3 },
-        ];
-
-        setCurrentWeather(mockCurrentWeather);
-        setForecast(mockForecast);
-        setAlerts(['Unable to fetch real-time weather data. Showing sample data.']);
+        const errorText = await currentResponse.text();
+        throw new Error(`Weather API error (${currentResponse.status}): Service temporarily unavailable`);
       }
     } catch (error) {
       console.error('Failed to fetch weather data:', error);
+      
+      const mockCurrentWeather: WeatherData = {
+        date: new Date(),
+        temperature: { current: 24, min: 18, max: 28 },
+        humidity: 65,
+        precipitation: 0,
+        windSpeed: 12,
+        conditions: 'Partly Cloudy'
+      };
+      
+      const mockForecast: WeatherForecast[] = [
+        { date: new Date(Date.now() + 86400000), temperature: { min: 19, max: 26 }, conditions: 'Sunny', precipitation: 0 },
+        { date: new Date(Date.now() + 172800000), temperature: { min: 16, max: 23 }, conditions: 'Rainy', precipitation: 15 },
+        { date: new Date(Date.now() + 259200000), temperature: { min: 20, max: 27 }, conditions: 'Cloudy', precipitation: 5 },
+        { date: new Date(Date.now() + 345600000), temperature: { min: 22, max: 29 }, conditions: 'Sunny', precipitation: 0 },
+        { date: new Date(Date.now() + 432000000), temperature: { min: 18, max: 25 }, conditions: 'Partly Cloudy', precipitation: 2 },
+        { date: new Date(Date.now() + 518400000), temperature: { min: 21, max: 28 }, conditions: 'Sunny', precipitation: 0 },
+        { date: new Date(Date.now() + 604800000), temperature: { min: 19, max: 26 }, conditions: 'Cloudy', precipitation: 3 },
+      ];
+
+      if (!currentWeather) {
+        setCurrentWeather(mockCurrentWeather);
+        setForecast(mockForecast);
+      }
+      
+      setAlerts([error instanceof Error ? error.message : 'Weather service unavailable. Using demo data.']);
     }
   };
 
@@ -178,10 +203,11 @@ const Weather: React.FC = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-gray-900">Weather Monitoring</h1>
         <button
-          onClick={fetchWeatherData}
-          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700"
+          onClick={() => fetchWeatherData(true)}
+          className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50"
+          disabled={Date.now() - lastFetch < 60000}
         >
-          Refresh
+          {Date.now() - lastFetch < 60000 ? 'Wait 1min' : 'Refresh'}
         </button>
       </div>
 

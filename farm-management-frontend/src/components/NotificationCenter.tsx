@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, Trash2 } from 'lucide-react';
-import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
+import { useUser } from '../contexts/UserContext';
 
 interface Notification {
   id: string;
@@ -12,31 +13,63 @@ interface Notification {
   read: boolean;
   createdAt: any;
   data?: any;
+  targetRole?: string;
+  targetUser?: string;
+  assignedTo?: string;
 }
 
 const NotificationCenter: React.FC = () => {
+  const { user, isWorker } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showPanel, setShowPanel] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
+    if (!user) return;
+
     const q = query(
       collection(db, 'notifications'),
       orderBy('createdAt', 'desc'),
-      limit(20)
+      limit(50)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      const notifs = snapshot.docs.map(doc => ({
+      let notifs = snapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       })) as Notification[];
       
-      setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.read).length);
+      // Filter notifications based on user role and assignment
+      if (isWorker) {
+        notifs = notifs.filter(notif => {
+          // Show notifications that are:
+          // 1. Assigned specifically to this worker
+          // 2. Targeted to workers in general
+          // 3. Task-related notifications for tasks assigned to this worker
+          return (
+            notif.assignedTo === user.name ||
+            notif.targetUser === user.name ||
+            notif.targetRole === 'worker' ||
+            (notif.type?.includes('task') && notif.data?.assignedTo === user.name) ||
+            (!notif.targetRole && !notif.targetUser && !notif.assignedTo) // General notifications
+          );
+        });
+      }
+      
+      // Remove duplicates based on title and message combination
+      const uniqueNotifs = notifs.filter((notif, index, self) => 
+        index === self.findIndex(n => 
+          n.title === notif.title && 
+          n.message === notif.message && 
+          n.type === notif.type
+        )
+      );
+      
+      setNotifications(uniqueNotifs);
+      setUnreadCount(uniqueNotifs.filter(n => !n.read).length);
       
       // Show browser notification for new high priority items
-      notifs.forEach(n => {
+      uniqueNotifs.forEach(n => {
         if (!n.read && n.priority === 'high' && Notification.permission === 'granted') {
           new Notification(n.title, {
             body: n.message,
@@ -52,7 +85,7 @@ const NotificationCenter: React.FC = () => {
     }
 
     return () => unsubscribe();
-  }, []);
+  }, [user, isWorker]);
 
   const markAsRead = async (id: string) => {
     try {

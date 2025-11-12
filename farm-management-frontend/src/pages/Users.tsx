@@ -3,6 +3,7 @@ import { collection, onSnapshot, addDoc, updateDoc, deleteDoc, doc } from 'fireb
 import { db } from '../config/firebase';
 import { Plus, Edit, Trash2, Key } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
+import { useUser } from '../contexts/UserContext';
 
 interface User {
   id: string;
@@ -17,6 +18,7 @@ interface User {
 
 const Users: React.FC = () => {
   const { showToast } = useToast();
+  const { user: currentUser, isSuperAdmin } = useUser();
   const [users, setUsers] = useState<User[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -36,6 +38,13 @@ const Users: React.FC = () => {
     assignedFarms: []
   });
   const [farms, setFarms] = useState<any[]>([]);
+
+  // Helper function to check if current user can manage a specific user
+  const canManageUser = (targetUser: User) => {
+    if (isSuperAdmin) return true;
+    if (targetUser.role === 'super_admin' || targetUser.role === 'admin') return false;
+    return true;
+  };
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
@@ -114,7 +123,13 @@ const Users: React.FC = () => {
     }
   };
 
-  const handleDeleteUser = async (userId: string) => {
+  const handleDeleteUser = async (userId: string, userRole: string) => {
+    // Prevent admins from deleting super_admins or other admins
+    if (!isSuperAdmin && (userRole === 'super_admin' || userRole === 'admin')) {
+      showToast('You cannot delete super admins or other admins', 'error');
+      return;
+    }
+    
     if (window.confirm('Are you sure you want to delete this user?')) {
       try {
         await deleteDoc(doc(db, 'users', userId));
@@ -211,8 +226,8 @@ const Users: React.FC = () => {
             >
               <option value="worker">Worker</option>
               <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
+              {isSuperAdmin && <option value="admin">Admin</option>}
+              {isSuperAdmin && <option value="super_admin">Super Admin</option>}
             </select>
             {(newUser.role === 'admin' || newUser.role === 'manager') && (
               <div className="md:col-span-2">
@@ -289,11 +304,12 @@ const Users: React.FC = () => {
               value={editingUser.role}
               onChange={(e) => setEditingUser({ ...editingUser, role: e.target.value as any })}
               className="border rounded-lg px-3 py-2"
+              disabled={!isSuperAdmin && (editingUser.role === 'super_admin' || editingUser.role === 'admin')}
             >
               <option value="worker">Worker</option>
               <option value="manager">Manager</option>
-              <option value="admin">Admin</option>
-              <option value="super_admin">Super Admin</option>
+              {(isSuperAdmin || editingUser.role === 'admin') && <option value="admin">Admin</option>}
+              {(isSuperAdmin || editingUser.role === 'super_admin') && <option value="super_admin">Super Admin</option>}
             </select>
             {(editingUser.role === 'admin' || editingUser.role === 'manager') && (
               <div className="md:col-span-2">
@@ -354,7 +370,7 @@ const Users: React.FC = () => {
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
               {users.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50">
+                <tr key={user.id} className={`hover:bg-gray-50 ${!canManageUser(user) ? 'opacity-60' : ''}`}>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
                       <div className="text-sm font-medium text-gray-900">{user.name}</div>
@@ -384,33 +400,44 @@ const Users: React.FC = () => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex space-x-2">
-                      <button
-                        onClick={() => handleUpdateStatus(user.id, user.status)}
-                        className={`${user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
-                      >
-                        {user.status === 'active' ? 'Deactivate' : 'Activate'}
-                      </button>
-                      <button
-                        onClick={() => setEditingUser(user)}
-                        className="text-blue-600 hover:text-blue-900"
-                        title="Edit user"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleResetPassword(user.id, user.name)}
-                        className="text-orange-600 hover:text-orange-900"
-                        title="Reset password"
-                      >
-                        <Key className="h-4 w-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteUser(user.id)}
-                        className="text-red-600 hover:text-red-900"
-                        title="Delete user"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
+                      {!canManageUser(user) && (
+                        <span className="text-xs text-gray-400 italic">Protected</span>
+                      )}
+                      {canManageUser(user) && (
+                        <button
+                          onClick={() => handleUpdateStatus(user.id, user.status)}
+                          className={`${user.status === 'active' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900'}`}
+                        >
+                          {user.status === 'active' ? 'Deactivate' : 'Activate'}
+                        </button>
+                      )}
+                      {canManageUser(user) && (
+                        <button
+                          onClick={() => setEditingUser(user)}
+                          className="text-blue-600 hover:text-blue-900"
+                          title="Edit user"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canManageUser(user) && (
+                        <button
+                          onClick={() => handleResetPassword(user.id, user.name)}
+                          className="text-orange-600 hover:text-orange-900"
+                          title="Reset password"
+                        >
+                          <Key className="h-4 w-4" />
+                        </button>
+                      )}
+                      {canManageUser(user) && (
+                        <button
+                          onClick={() => handleDeleteUser(user.id, user.role)}
+                          className="text-red-600 hover:text-red-900"
+                          title="Delete user"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

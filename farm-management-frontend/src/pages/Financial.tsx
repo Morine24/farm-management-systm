@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { DollarSign, TrendingUp, TrendingDown, Plus, Download, Calendar, FileText } from 'lucide-react';
 import toast, { Toaster } from 'react-hot-toast';
+import { useUser } from '../contexts/UserContext';
 
 interface FinancialRecord {
   id: string;
@@ -20,6 +21,7 @@ interface Field {
 }
 
 const Financial: React.FC = () => {
+  const { isManager, isAdmin, isSuperAdmin } = useUser();
   const [records, setRecords] = useState<FinancialRecord[]>([]);
   const [farms, setFarms] = useState<Field[]>([]);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -37,6 +39,14 @@ const Financial: React.FC = () => {
 
   const incomeCategories = ['Crop Sales', 'Livestock/Livestock Products Sale', 'Government Subsidy', 'Equipment Rental', 'Other Income'];
   const expenseCategories = ['Seeds & Plants', 'Fertilizers', 'Pesticides', 'Equipment', 'Labor', 'Utilities', 'Maintenance', 'Transportation', 'Other Expenses'];
+  
+  // Spending limits for managers (KSh)
+  const MANAGER_SPENDING_LIMIT = 50000;
+  const getSpendingLimit = () => {
+    if (isSuperAdmin || isAdmin) return Infinity;
+    if (isManager) return MANAGER_SPENDING_LIMIT;
+    return 0;
+  };
 
   useEffect(() => {
     fetchFinancialRecords();
@@ -571,6 +581,12 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 recordData.paymentStatus = formData.get('paymentStatus') as string;
               }
               
+              // Check spending limits for managers
+              if (recordType === 'expense' && isManager && recordData.amount > MANAGER_SPENDING_LIMIT) {
+                toast.error(`Managers cannot approve expenses over KSh ${MANAGER_SPENDING_LIMIT.toLocaleString()}. Please contact an admin.`);
+                return;
+              }
+              
               try {
                 // Use Firebase directly instead of API
                 const { addDoc, collection } = await import('firebase/firestore');
@@ -676,13 +692,19 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
                 )}
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Total Amount (KSh)</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Total Amount (KSh)
+                      {isManager && recordType === 'expense' && (
+                        <span className="text-xs text-orange-600 block">Manager limit: KSh {MANAGER_SPENDING_LIMIT.toLocaleString()}</span>
+                      )}
+                    </label>
                     <input
                       type="number"
                       name="amount"
                       required
                       step="0.01"
                       min="0.01"
+                      max={isManager && recordType === 'expense' ? MANAGER_SPENDING_LIMIT : undefined}
                       placeholder="0.00"
                       value={recordType === 'income' && quantity && unitPrice ? (quantity * unitPrice).toFixed(2) : ''}
                       readOnly={recordType === 'income' && quantity > 0 && unitPrice > 0}

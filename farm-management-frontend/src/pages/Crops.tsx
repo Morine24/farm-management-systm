@@ -4,6 +4,7 @@ import { db } from '../config/firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import toast, { Toaster } from 'react-hot-toast';
 import { getCropList, getCropData, calculateHarvestDate, generateMaintenanceSchedule } from '../utils/cropDatabase';
+import { useUser } from '../contexts/UserContext';
 
 const getCropMaintenance = (variety: string) => {
   const crop = variety.toLowerCase();
@@ -62,6 +63,7 @@ interface Crop {
 }
 
 const Crops: React.FC = () => {
+  const { isWorker } = useUser();
   const [crops, setCrops] = useState<Crop[]>([]);
   const [farms, setFarms] = useState<any[]>([]);
   const [sections, setSections] = useState<any[]>([]);
@@ -211,17 +213,19 @@ const Crops: React.FC = () => {
       <div className="mb-6">
         <div className="flex justify-between items-center mb-4">
           <h1 className="text-xl md:text-3xl font-bold">Crop Management</h1>
-          <button
-            onClick={() => {
-              if (activeTab === 'crops') setShowModal(true);
-              else if (activeTab === 'productivity') setShowProductivityModal(true);
-              else setShowIrrigationModal(true);
-            }}
-            className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            {activeTab === 'crops' ? 'Add Crop' : activeTab === 'productivity' ? 'Add Record' : 'Add Irrigation'}
-          </button>
+          {!isWorker && (
+            <button
+              onClick={() => {
+                if (activeTab === 'crops') setShowModal(true);
+                else if (activeTab === 'productivity') setShowProductivityModal(true);
+                else setShowIrrigationModal(true);
+              }}
+              className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              {activeTab === 'crops' ? 'Add Crop' : activeTab === 'productivity' ? 'Add Record' : 'Add Irrigation'}
+            </button>
+          )}
         </div>
 
         <div className="border-b border-gray-200 mb-4">
@@ -309,12 +313,18 @@ const Crops: React.FC = () => {
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <button onClick={(e) => { e.stopPropagation(); setEditingCrop(crop); setShowModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">
-                    <Edit className="h-4 w-4" />
-                  </button>
-                  <button onClick={(e) => { e.stopPropagation(); handleDelete(crop.id); }} className="text-red-600 hover:text-red-900">
-                    <Trash2 className="h-4 w-4" />
-                  </button>
+                  {!isWorker ? (
+                    <>
+                      <button onClick={(e) => { e.stopPropagation(); setEditingCrop(crop); setShowModal(true); }} className="text-blue-600 hover:text-blue-900 mr-3">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={(e) => { e.stopPropagation(); handleDelete(crop.id); }} className="text-red-600 hover:text-red-900">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  ) : (
+                    <span className="text-gray-500 text-xs">View Only</span>
+                  )}
                 </td>
               </tr>
             ))}

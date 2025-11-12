@@ -32,6 +32,11 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUser, isSuperAdmin, isAdmin, isManager, isWorker, canManageUsers } = useUser();
+  
+  console.log('Current user:', user);
+  console.log('User role:', user?.role);
+  console.log('isAdmin:', isAdmin);
+  console.log('isSuperAdmin:', isSuperAdmin);
 
   useEffect(() => {
     const handler = (e: Event) => {
@@ -51,24 +56,36 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       nav.push(
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
         { name: 'Crops', href: '/crops', icon: Wheat },
+        { name: 'Livestock', href: '/livestock', icon: Beef },
         { name: 'Weather', href: '/weather', icon: Cloud }
       );
-    } else if (isManager || isAdmin) {
+    } else if (isAdmin) {
+      // Admin and Super Admin navigation
       nav.push(
         { name: 'Farms', href: '/farms', icon: Map },
         { name: 'Crops', href: '/crops', icon: Wheat },
         { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+        { name: 'Livestock', href: '/livestock', icon: Beef },
         { name: 'Inventory', href: '/inventory', icon: Package },
         { name: 'Finance', href: '/financial', icon: DollarSign },
         { name: 'Labour', href: '/labour', icon: Briefcase },
         { name: 'Weather', href: '/weather', icon: Cloud },
         { name: 'Analytics', href: '/analytics', icon: BarChart3 },
+        { name: 'Staffing', href: '/users', icon: Users },
         { name: 'Reports', href: '/reports', icon: FileText }
       );
-      
-      if (isAdmin) {
-        nav.push({ name: 'Staffing', href: '/users', icon: Users });
-      }
+    } else if (isManager) {
+      nav.push(
+        { name: 'Farms', href: '/farms', icon: Map },
+        { name: 'Crops', href: '/crops', icon: Wheat },
+        { name: 'Tasks', href: '/tasks', icon: CheckSquare },
+        { name: 'Livestock', href: '/livestock', icon: Beef },
+        { name: 'Inventory', href: '/inventory', icon: Package },
+        { name: 'Finance', href: '/financial', icon: DollarSign },
+        { name: 'Labour', href: '/labour', icon: Briefcase },
+        { name: 'Weather', href: '/weather', icon: Cloud },
+        { name: 'Reports', href: '/reports', icon: FileText }
+      );
     }
     
     return nav;

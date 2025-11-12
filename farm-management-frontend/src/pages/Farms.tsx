@@ -5,6 +5,7 @@ import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where } from 'fi
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useUser } from '../contexts/UserContext';
 
 interface Farm {
   id: string;
@@ -229,6 +230,8 @@ const DetailsPanel: React.FC<{
 };
 
 const Farms: React.FC = () => {
+  const { user } = useUser();
+  const isManager = user?.role === 'manager';
   const [farms, setFarms] = useState<Farm[]>([]);
   const [selectedFarm, setSelectedFarm] = useState<Farm | null>(null);
   const [selectedSection, setSelectedSection] = useState<Section | null>(null);
@@ -436,9 +439,11 @@ const Farms: React.FC = () => {
               <p className="text-sm text-gray-500">{selectedFarm.area} acres • {selectedFarm.soilType} soil</p>
             </div>
           </div>
-          <button onClick={() => setEditingFarm(selectedFarm)} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
-            <Edit className="h-4 w-4 inline mr-1" />Edit
-          </button>
+          {!isManager && (
+            <button onClick={() => setEditingFarm(selectedFarm)} className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm">
+              <Edit className="h-4 w-4 inline mr-1" />Edit
+            </button>
+          )}
         </div>
 
         <div className="border-b bg-white overflow-x-auto">
@@ -475,11 +480,8 @@ const Farms: React.FC = () => {
                 </div>
               </div>
               <div className="bg-white rounded-lg shadow-sm border">
-                <div className="p-4 border-b flex justify-between items-center">
+                <div className="p-4 border-b">
                   <h2 className="text-lg font-semibold flex items-center"><Layers className="h-5 w-5 mr-2 text-green-600" />Farm Structure</h2>
-                  <button onClick={() => setStructureModal({ type: 'section', parentId: selectedFarm.id })} className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700">
-                    <Plus className="h-3 w-3 inline mr-1" />Add Section
-                  </button>
                 </div>
                 <div className="p-4">
                   {isLoadingSections ? <p className="text-gray-500 text-center py-8">Loading...</p> : sections.length === 0 ? <p className="text-gray-500 text-center py-8">No sections yet</p> : (
@@ -549,12 +551,14 @@ const Farms: React.FC = () => {
           <p className="text-sm md:text-base text-gray-600 mt-1">Manage your farms, sections, blocks, and beds</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <button 
-            onClick={() => setShowAddModal(true)} 
-            className="flex items-center px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
-          >
-            <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Farm
-          </button>
+          {!isManager && (
+            <button 
+              onClick={() => setShowAddModal(true)} 
+              className="flex items-center px-3 py-2 text-sm bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors shadow-sm"
+            >
+              <Plus className="h-4 w-4 mr-1" /><span className="hidden sm:inline">Add </span>Farm
+            </button>
+          )}
           <button 
             onClick={() => setStructureModal({ type: 'section', parentId: '' })} 
             className="flex items-center px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"
@@ -647,12 +651,18 @@ const Farms: React.FC = () => {
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-blue-600">{farm.soilHealth.moisture}%</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-orange-600">{farm.soilHealth.temperature}°C</td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }} className="text-blue-600 hover:text-blue-900 mr-3">
-                              <Edit className="h-4 w-4" />
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }} className="text-red-600 hover:text-red-900">
-                              <Trash2 className="h-4 w-4" />
-                            </button>
+                            {!isManager ? (
+                              <>
+                                <button onClick={(e) => { e.stopPropagation(); setEditingFarm(farm); }} className="text-blue-600 hover:text-blue-900 mr-3">
+                                  <Edit className="h-4 w-4" />
+                                </button>
+                                <button onClick={(e) => { e.stopPropagation(); handleDeleteFarm(farm.id); }} className="text-red-600 hover:text-red-900">
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </>
+                            ) : (
+                              <span className="text-gray-500 text-xs">View Only</span>
+                            )}
                           </td>
                         </tr>
                         {isExpanded && sections.length > 0 && sections.map(section => {
@@ -1339,12 +1349,7 @@ const BlockView: React.FC<{ block: Block; loadBeds: any; loadDriplines: any; set
             <span className="font-medium text-sm text-purple-900">{block.name}</span>
             <span className="text-xs text-purple-600">• {block.cropType}</span>
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); setStructureModal({ type: 'bed', parentId: block.id }); }}
-            className="px-2 py-1 bg-orange-600 text-white rounded text-xs hover:bg-orange-700"
-          >
-            <Plus className="h-3 w-3 inline mr-1" />Bed
-          </button>
+
         </div>
       </div>
       {expanded && (
@@ -1381,12 +1386,7 @@ const BedView: React.FC<{ bed: Bed; loadDriplines: any; setStructureModal: (moda
             <span className="font-medium text-sm text-green-900">{bed.name}</span>
             <span className="text-xs text-green-600">{bed.length}m × {bed.width}m</span>
           </div>
-          <button 
-            onClick={(e) => { e.stopPropagation(); setStructureModal({ type: 'dripline', parentId: bed.id }); }}
-            className="px-2 py-1 bg-teal-600 text-white rounded text-xs hover:bg-teal-700"
-          >
-            <Plus className="h-3 w-3 inline mr-1" />Dripline
-          </button>
+
         </div>
       </div>
       {expanded && (

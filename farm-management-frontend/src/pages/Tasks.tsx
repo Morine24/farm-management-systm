@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, AlertCircle, CheckCircle, Plus, Filter } from 'lucide-react';
+import { Calendar, Clock, User, AlertCircle, CheckCircle, Plus, Filter, MapPin } from 'lucide-react';
 import { format } from 'date-fns';
 import { collection, onSnapshot, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useUser } from '../contexts/UserContext';
+import { useToast } from '../contexts/ToastContext';
 
 interface Task {
   id: string;
@@ -34,7 +35,9 @@ interface User {
 
 const Tasks: React.FC = () => {
   const { user, isWorker } = useUser();
+  const { showToast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
+  const [locationLoading, setLocationLoading] = useState(false);
   const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
   const [filter, setFilter] = useState('all');
   const [showAddModal, setShowAddModal] = useState(false);
@@ -68,7 +71,13 @@ const Tasks: React.FC = () => {
         ...doc.data(),
         dueDate: doc.data().dueDate?.toDate() || new Date()
       })) as Task[];
-      setTasks(tasksData);
+      
+      // For workers, only show their own tasks
+      const filteredTasks = isWorker 
+        ? tasksData.filter(task => task.assignedTo === user.name)
+        : tasksData;
+      
+      setTasks(filteredTasks);
     });
 
     const unsubscribeUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
@@ -140,19 +149,73 @@ const Tasks: React.FC = () => {
     setFilteredTasks(filtered);
   };
 
+  const getCurrentLocation = (): Promise<{latitude: number, longitude: number, address?: string}> => {
+    return new Promise((resolve, reject) => {
+      if (!navigator.geolocation) {
+        reject(new Error('Geolocation not supported'));
+        return;
+      }
+      
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            // Reverse geocoding to get address
+            const response = await fetch(`https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`);
+            const data = await response.json();
+            const address = data.results?.[0]?.formatted || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`;
+            resolve({ latitude, longitude, address });
+          } catch {
+            resolve({ latitude, longitude, address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}` });
+          }
+        },
+        (error) => reject(error),
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 300000 }
+      );
+    });
+  };
+
   const updateTaskStatus = async (taskId: string, status: string) => {
     try {
+      setLocationLoading(true);
       const { updateDoc, doc } = await import('firebase/firestore');
+      
+      let locationData = {};
+      
+      // Get location for check-in/check-out
+      if (status === 'in_progress' || status === 'completed') {
+        try {
+          const location = await getCurrentLocation();
+          locationData = {
+            [`${status === 'in_progress' ? 'checkin' : 'checkout'}_location`]: {
+              latitude: location.latitude,
+              longitude: location.longitude,
+              address: location.address,
+              timestamp: new Date()
+            }
+          };
+          showToast(`Location captured: ${location.address}`, 'success');
+        } catch (error) {
+          console.warn('Location access denied or failed:', error);
+          showToast('Location access denied. Task updated without location.', 'info');
+        }
+      }
+      
       if (status === 'completed') {
         const task = tasks.find(t => t.id === taskId);
         setSelectedTask(task || null);
         setCompletionData({ actualHours: task?.estimatedHours || 0, actualCost: task?.labourCost || 0 });
         setShowLabourModal(true);
+        // Store location data for later use in completion
+        (window as any).tempLocationData = locationData;
       } else {
-        await updateDoc(doc(db, 'tasks', taskId), { status });
+        await updateDoc(doc(db, 'tasks', taskId), { status, ...locationData });
       }
     } catch (error) {
       console.error('Failed to update task:', error);
+      showToast('Failed to update task', 'error');
+    } finally {
+      setLocationLoading(false);
     }
   };
 
@@ -161,13 +224,17 @@ const Tasks: React.FC = () => {
     try {
       const { updateDoc, doc, addDoc, collection } = await import('firebase/firestore');
       
+      // Get stored location data
+      const locationData = (window as any).tempLocationData || {};
+      
       // Update task status
       await updateDoc(doc(db, 'tasks', selectedTask.id), { 
         status: 'completed',
         actualHours: completionData.actualHours,
         actualCost: completionData.actualCost,
         completedDate: new Date(),
-        isPaid: false
+        isPaid: false,
+        ...locationData
       });
       
       // Add labour cost to financial records
@@ -183,10 +250,15 @@ const Tasks: React.FC = () => {
         isPaid: true
       });
       
+      // Clear temp location data
+      delete (window as any).tempLocationData;
+      
       setShowLabourModal(false);
       setSelectedTask(null);
+      showToast('Task completed successfully', 'success');
     } catch (error) {
       console.error('Failed to complete task:', error);
+      showToast('Failed to complete task', 'error');
     }
   };
 
@@ -325,26 +397,50 @@ const Tasks: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm font-medium">
-                    {task.status === 'pending' && (
-                      <button
-                        onClick={() => updateTaskStatus(task.id, 'in_progress')}
-                        className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs sm:text-sm"
-                      >
-                        Start
-                      </button>
+                    {/* Workers can only update their own tasks */}
+                    {(!isWorker || task.assignedTo === user?.name) && (
+                      <>
+                        {task.status === 'pending' && (
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'in_progress')}
+                            disabled={locationLoading}
+                            className="px-2 sm:px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-xs sm:text-sm disabled:opacity-50 flex items-center gap-1"
+                          >
+                            {locationLoading ? (
+                              <Clock className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <MapPin className="h-3 w-3" />
+                            )}
+                            {locationLoading ? 'Getting Location...' : 'Check In'}
+                          </button>
+                        )}
+                        {task.status === 'in_progress' && (
+                          <button
+                            onClick={() => updateTaskStatus(task.id, 'completed')}
+                            disabled={locationLoading}
+                            className="px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs sm:text-sm disabled:opacity-50 flex items-center gap-1"
+                          >
+                            {locationLoading ? (
+                              <Clock className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <MapPin className="h-3 w-3" />
+                            )}
+                            {locationLoading ? 'Getting Location...' : 'Check Out'}
+                          </button>
+                        )}
+                        {task.status === 'completed' && (
+                          <div className="flex items-center text-green-600">
+                            <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
+                            <span title="Location tracked">
+                              <MapPin className="h-3 w-3 ml-1" />
+                            </span>
+                          </div>
+                        )}
+                      </>
                     )}
-                    {task.status === 'in_progress' && (
-                      <button
-                        onClick={() => updateTaskStatus(task.id, 'completed')}
-                        className="px-2 sm:px-3 py-1 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 text-xs sm:text-sm"
-                      >
-                        Done
-                      </button>
-                    )}
-                    {task.status === 'completed' && (
-                      <div className="flex items-center text-green-600">
-                        <CheckCircle className="h-4 w-4 sm:h-5 sm:w-5" />
-                      </div>
+                    {/* Show read-only status for other workers' tasks (managers/admins only) */}
+                    {isWorker && task.assignedTo !== user?.name && (
+                      <span className="text-gray-500 text-xs">View Only</span>
                     )}
                   </td>
                 </tr>
