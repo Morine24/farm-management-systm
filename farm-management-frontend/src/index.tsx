@@ -14,4 +14,7 @@ root.render(
   </React.StrictMode>
 );
 
-serviceWorkerRegistration.register();
+// Register service worker only in production
+if (process.env.NODE_ENV === 'production') {
+  serviceWorkerRegistration.register();
+}
