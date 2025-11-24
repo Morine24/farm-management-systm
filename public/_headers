@@ -1,0 +1,11 @@
+/static/js/*.js
+  Content-Type: application/javascript
+
+/static/css/*.css
+  Content-Type: text/css
+
+/manifest.json
+  Content-Type: application/json
+
+/*.ico
+  Content-Type: image/x-icon
