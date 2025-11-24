@@ -53,6 +53,8 @@ app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/users', require('./routes/users'));
 app.use('/api/labour', require('./routes/labour'));
 app.use('/api/notifications', require('./routes/notifications'));
+app.use('/api/contracts', require('./routes/contracts'));
+app.use('/api/workplans', require('./routes/workplans'));
 
 // Socket.io for real-time updates
 io.on('connection', (socket) => {
@@ -70,6 +72,13 @@ io.on('connection', (socket) => {
 // Make io available to routes
 app.set('io', io);
 
+// Start notification scheduler
+if (db) {
+  const { startNotificationScheduler } = require('./utils/taskNotifications');
+  startNotificationScheduler(db, io);
+  console.log('✅ Notification scheduler started');
+}
+
 // Serve static files from React build
 app.use(express.static(path.join(__dirname, '../farm-management-frontend/build')));
 
@@ -86,7 +95,11 @@ app.get('*', (req, res) => {
 });
 
 const PORT = process.env.PORT || 5001;
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
-  console.log(`📊 Health check: http://localhost:${PORT}/health`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`📊 Health check: /health`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+}).on('error', (err) => {
+  console.error('❌ Server failed to start:', err);
+  process.exit(1);
 });

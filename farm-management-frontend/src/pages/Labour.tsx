@@ -69,7 +69,7 @@ const Labour: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showWorkerModal, setShowWorkerModal] = useState(false);
   const [showCheckinModal, setShowCheckinModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler' | 'contracts'>('attendance');
+  const [activeTab, setActiveTab] = useState<'attendance' | 'records' | 'workers' | 'scheduler' | 'contracts' | 'payroll'>('attendance');
   const [tasks, setTasks] = useState<any[]>([]);
   const [selectedWeek, setSelectedWeek] = useState(new Date());
   const [timeIn, setTimeIn] = useState('');
@@ -84,6 +84,10 @@ const Labour: React.FC = () => {
   const [editingWorkPlanId, setEditingWorkPlanId] = useState<string | null>(null);
   const [workPlanForm, setWorkPlanForm] = useState({ date: '', activity: '', labourRequired: '' });
   const [schedulerView, setSchedulerView] = useState<'tasks' | 'workplans'>('tasks');
+  const [payPeriod, setPayPeriod] = useState('monthly');
+  const [selectedMonth, setSelectedMonth] = useState(new Date().toISOString().slice(0, 7));
+  const [payrollWeek, setPayrollWeek] = useState(new Date().toISOString().slice(0, 10));
+  const [selectedDay, setSelectedDay] = useState(new Date().toISOString().slice(0, 10));
 
   useEffect(() => {
     fetchLabourRecords();
@@ -398,6 +402,16 @@ const Labour: React.FC = () => {
             }`}
           >
             Contracts
+          </button>
+          <button
+            onClick={() => setActiveTab('payroll')}
+            className={`py-2 px-1 border-b-2 font-medium text-xs md:text-sm whitespace-nowrap ${
+              activeTab === 'payroll'
+                ? 'border-primary-500 text-primary-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            }`}
+          >
+            Payroll
           </button>
         </nav>
       </div>
@@ -859,6 +873,248 @@ const Labour: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Payroll Tab */}
+      {activeTab === 'payroll' && (() => {
+        const getPayrollData = () => {
+          const payrollMap = new Map();
+          
+          // Add labour records
+          records.forEach(record => {
+            const recordDate = record.date instanceof Date ? record.date : 
+                             (record.date as any).toDate ? (record.date as any).toDate() : 
+                             new Date(record.date);
+            let include = false;
+            
+            if (payPeriod === 'monthly') {
+              const monthStr = recordDate.toISOString().slice(0, 7);
+              include = monthStr === selectedMonth;
+            } else if (payPeriod === 'weekly') {
+              const weekStart = new Date(payrollWeek);
+              weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 7);
+              include = recordDate >= weekStart && recordDate < weekEnd;
+            } else {
+              include = recordDate.toISOString().slice(0, 10) === selectedDay;
+            }
+            
+            if (!include) return;
+            
+            if (!payrollMap.has(record.workerName)) {
+              payrollMap.set(record.workerName, { name: record.workerName, hours: 0, rate: record.ratePerHour, gross: 0, deductions: 0, sources: [] });
+            }
+            
+            const entry = payrollMap.get(record.workerName);
+            entry.hours += record.hoursWorked;
+            entry.gross += record.totalPay;
+            entry.sources.push('Labour Record');
+          });
+          
+          // Add attendance records
+          activeCheckins.forEach(checkin => {
+            if (!checkin.checkOutTime) return;
+            
+            const checkinDate = new Date(checkin.checkInTime);
+            let include = false;
+            
+            if (payPeriod === 'monthly') {
+              const monthStr = checkinDate.toISOString().slice(0, 7);
+              include = monthStr === selectedMonth;
+            } else if (payPeriod === 'weekly') {
+              const weekStart = new Date(payrollWeek);
+              weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 7);
+              include = checkinDate >= weekStart && checkinDate < weekEnd;
+            } else {
+              include = checkinDate.toISOString().slice(0, 10) === selectedDay;
+            }
+            
+            if (!include) return;
+            
+            const worker = workers.find(w => w.name === checkin.workerName);
+            const rate = worker?.ratePerHour || 0;
+            const hours = checkin.hoursWorked || ((checkin.checkOutTime.getTime() - checkin.checkInTime.getTime()) / (1000 * 60 * 60));
+            const gross = hours * rate;
+            
+            if (!payrollMap.has(checkin.workerName)) {
+              payrollMap.set(checkin.workerName, { name: checkin.workerName, hours: 0, rate, gross: 0, deductions: 0, sources: [] });
+            }
+            
+            const entry = payrollMap.get(checkin.workerName);
+            entry.hours += hours;
+            entry.gross += gross;
+            entry.sources.push('Attendance');
+          });
+          
+          // Add contract costs
+          contracts.forEach(contract => {
+            if (!contract.cost || contract.cost <= 0) return;
+            
+            const contractDate = new Date(contract.date);
+            let include = false;
+            
+            if (payPeriod === 'monthly') {
+              const monthStr = contractDate.toISOString().slice(0, 7);
+              include = monthStr === selectedMonth;
+            } else if (payPeriod === 'weekly') {
+              const weekStart = new Date(payrollWeek);
+              weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+              const weekEnd = new Date(weekStart);
+              weekEnd.setDate(weekEnd.getDate() + 7);
+              include = contractDate >= weekStart && contractDate < weekEnd;
+            } else {
+              include = contractDate.toISOString().slice(0, 10) === selectedDay;
+            }
+            
+            if (!include) return;
+            
+            const contractName = `${contract.project} (${contract.inCharge})`;
+            if (!payrollMap.has(contractName)) {
+              payrollMap.set(contractName, { name: contractName, hours: 0, rate: 0, gross: 0, deductions: 0, sources: [] });
+            }
+            
+            const entry = payrollMap.get(contractName);
+            entry.gross += contract.cost;
+            entry.sources.push('Contract');
+          });
+          
+          return Array.from(payrollMap.values()).map(entry => ({
+            ...entry,
+            net: entry.gross - entry.deductions
+          }));
+        };
+        
+        const payrollData = getPayrollData();
+        const totalGross = payrollData.reduce((sum, p) => sum + p.gross, 0);
+        const totalNet = payrollData.reduce((sum, p) => sum + p.net, 0);
+        
+        return (
+          <div className="space-y-4">
+            <div className="bg-white rounded-lg shadow p-4">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Pay Period</label>
+                  <select
+                    value={payPeriod}
+                    onChange={(e) => setPayPeriod(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-lg"
+                  >
+                    <option value="daily">Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="monthly">Monthly</option>
+                  </select>
+                </div>
+                {payPeriod === 'monthly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Month</label>
+                    <input
+                      type="month"
+                      value={selectedMonth}
+                      onChange={(e) => setSelectedMonth(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                )}
+                {payPeriod === 'weekly' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Week Starting</label>
+                    <input
+                      type="date"
+                      value={payrollWeek}
+                      onChange={(e) => setPayrollWeek(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                )}
+                {payPeriod === 'daily' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+                    <input
+                      type="date"
+                      value={selectedDay}
+                      onChange={(e) => setSelectedDay(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <DollarSign className="h-8 w-8 text-blue-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Gross Pay</p>
+                    <p className="text-2xl font-bold text-gray-900">KSh {totalGross.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="bg-white rounded-lg shadow p-6">
+                <div className="flex items-center">
+                  <DollarSign className="h-8 w-8 text-green-600" />
+                  <div className="ml-4">
+                    <p className="text-sm font-medium text-gray-600">Total Net Pay</p>
+                    <p className="text-2xl font-bold text-green-600">KSh {totalNet.toLocaleString(undefined, {maximumFractionDigits: 2})}</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="bg-white rounded-lg shadow">
+              <div className="px-6 py-4 border-b">
+                <h2 className="text-lg font-semibold text-gray-900">Payroll Summary</h2>
+              </div>
+              <div className="overflow-x-auto">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Worker</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hours</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Rate/Hour</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gross Pay</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Deductions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Net Pay</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {payrollData.map((entry, idx) => (
+                      <tr key={idx} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                          <div>{entry.name}</div>
+                          <div className="text-xs text-gray-500 mt-1">
+                            {Array.from(new Set(entry.sources)).join(', ')}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.hours > 0 ? `${entry.hours.toFixed(1)}h` : '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.rate > 0 ? `KSh ${entry.rate}` : '-'}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">KSh {entry.gross.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">KSh {entry.deductions.toFixed(2)}</td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-green-600">KSh {entry.net.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot className="bg-gray-50">
+                    <tr>
+                      <td colSpan={3} className="px-6 py-4 text-sm font-semibold text-gray-900">Total</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">KSh {totalGross.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">KSh 0.00</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-green-600">KSh {totalNet.toLocaleString(undefined, {maximumFractionDigits: 2})}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+                {payrollData.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No payroll data for selected period
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Labour Records Table */}
       {activeTab === 'records' && (

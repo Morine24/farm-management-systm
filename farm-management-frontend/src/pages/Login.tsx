@@ -6,6 +6,13 @@ import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff } from 'lucide-react';
 import { useToast } from '../contexts/ToastContext';
 
+const hashPassword = async (password: string): Promise<string> => {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hash = await crypto.subtle.digest('SHA-256', data);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+};
+
 interface User {
   id: string;
   name: string;
@@ -53,7 +60,8 @@ const Login: React.FC = () => {
       const userDoc = querySnapshot.docs[0];
       const userData = { id: userDoc.id, ...userDoc.data() } as User;
 
-      if (userData.password !== password) {
+      const hashedPassword = await hashPassword(password);
+      if (userData.password !== hashedPassword) {
         setError('Invalid email or password');
         return;
       }
@@ -93,8 +101,9 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true);
+      const hashedPassword = await hashPassword(newPassword);
       await updateDoc(doc(db, 'users', currentUser!.id), {
-        password: newPassword,
+        password: hashedPassword,
         isDefaultPassword: false
       });
 

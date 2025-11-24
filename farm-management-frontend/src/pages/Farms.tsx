@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Droplets, ThermometerSun, ArrowLeft, Layers, Calendar, TrendingUp } from 'lucide-react';
 import { db } from '../config/firebase';
-import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where, getDocs } from 'firebase/firestore';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -871,16 +871,28 @@ const Farms: React.FC = () => {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
                     onChange={async (e) => {
                       const farmId = e.target.value;
-                      if (farmId && structureModal.type !== 'section') {
-                        setIsLoadingModalSections(true);
-                        try {
-                          const response = await axios.get(`${API_URL}/sections?farmId=${farmId}`);
-                          setModalSections(response.data);
-                        } catch (error) {
-                          console.error('Error loading sections:', error);
-                        } finally {
-                          setIsLoadingModalSections(false);
+                      if (farmId) {
+                        if (structureModal.type === 'block' || structureModal.type === 'bed' || structureModal.type === 'dripline') {
+                          setIsLoadingModalSections(true);
+                          setModalSections([]);
+                          setModalBlocks([]);
+                          setModalBeds([]);
+                          try {
+                            const q = query(collection(db, 'sections'), where('farmId', '==', farmId));
+                            const snapshot = await getDocs(q);
+                            const sectionsData = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Section));
+                            setModalSections(sectionsData);
+                          } catch (error) {
+                            console.error('Error loading sections:', error);
+                            toast.error('Failed to load sections');
+                          } finally {
+                            setIsLoadingModalSections(false);
+                          }
                         }
+                      } else {
+                        setModalSections([]);
+                        setModalBlocks([]);
+                        setModalBeds([]);
                       }
                     }}
                   >
@@ -917,16 +929,16 @@ const Farms: React.FC = () => {
 
               {structureModal.type === 'block' && (
                 <>
-                  {!structureModal.parentId && (
+                  {!structureModal.parentId && !selectedFarm && (
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Select Section</label>
                       <select 
                         name="sectionId" 
                         required 
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-primary-500 focus:border-primary-500"
-                        disabled={isLoadingModalSections}
+                        disabled={isLoadingModalSections || modalSections.length === 0}
                       >
-                        <option value="">{isLoadingModalSections ? 'Loading...' : 'Choose a section'}</option>
+                        <option value="">{isLoadingModalSections ? 'Loading...' : modalSections.length === 0 ? 'Select a farm first' : 'Choose a section'}</option>
                         {modalSections.map(section => (
                           <option key={section.id} value={section.id}>{section.name}</option>
                         ))}

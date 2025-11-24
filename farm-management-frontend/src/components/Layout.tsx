@@ -100,10 +100,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <div className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" onClick={() => setSidebarOpen(false)}>
               <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
               <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
-            </div>
+            </Link>
             <button onClick={() => setSidebarOpen(false)}>
               <X className="h-6 w-6" />
             </button>
@@ -135,10 +135,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <div className="flex h-16 items-center px-4 border-b">
-            <div className="flex items-center space-x-2">
+            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
               <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
               <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
-            </div>
+            </Link>
           </div>
           <nav className="flex-1 px-4 py-4">
             {navigation.map((item) => {

@@ -29,6 +29,13 @@ router.post('/', async (req, res) => {
     const db = req.app.get('db');
     const recordData = { ...req.body, createdAt: new Date() };
     
+    // Remove undefined fields
+    Object.keys(recordData).forEach(key => {
+      if (recordData[key] === undefined) {
+        delete recordData[key];
+      }
+    });
+    
     // If fieldId is provided, get field name
     if (recordData.fieldId) {
       const fieldDoc = await db.collection('fields').doc(recordData.fieldId).get();

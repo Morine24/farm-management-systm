@@ -588,6 +588,13 @@ ${Object.entries(reportData.expensesByCategory).map(([cat, amt]: [string, any]) 
               }
               
               try {
+                // Remove undefined fields
+                Object.keys(recordData).forEach(key => {
+                  if (recordData[key] === undefined) {
+                    delete recordData[key];
+                  }
+                });
+                
                 // Use Firebase directly instead of API
                 const { addDoc, collection } = await import('firebase/firestore');
                 const { db } = await import('../config/firebase');

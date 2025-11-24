@@ -51,7 +51,7 @@ router.post('/checkin', async (req, res) => {
   }
 });
 
-// Check-out worker
+// Check-out worker and create labour record
 router.put('/checkout/:attendanceId', async (req, res) => {
   try {
     const db = req.app.get('db');
@@ -67,6 +67,31 @@ router.put('/checkout/:attendanceId', async (req, res) => {
       hoursWorked: parseFloat(hoursWorked.toFixed(2)),
       status: 'checked_out'
     });
+    
+    // Get worker rate
+    const workerSnapshot = await db.collection('workers').where('name', '==', attendanceData.workerName).limit(1).get();
+    let ratePerHour = 0;
+    if (!workerSnapshot.empty) {
+      ratePerHour = workerSnapshot.docs[0].data().ratePerHour || 0;
+    }
+    
+    // Create labour record
+    const labourRecord = {
+      workerName: attendanceData.workerName,
+      workType: 'General Work',
+      timeIn: checkInTime.toTimeString().slice(0, 5),
+      timeOut: checkOutTime.toTimeString().slice(0, 5),
+      hoursWorked: parseFloat(hoursWorked.toFixed(2)),
+      ratePerHour,
+      totalPay: parseFloat((hoursWorked * ratePerHour).toFixed(2)),
+      date: checkInTime,
+      farmId: attendanceData.farmId,
+      farmName: attendanceData.farmName,
+      status: 'pending',
+      createdAt: new Date()
+    };
+    
+    await db.collection('labour').add(labourRecord);
     
     res.json({ message: 'Checked out successfully', hoursWorked: parseFloat(hoursWorked.toFixed(2)) });
   } catch (error) {
