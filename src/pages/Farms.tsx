@@ -6,7 +6,6 @@ import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useUser } from '../contexts/UserContext';
-import FarmHierarchyChart from '../components/FarmHierarchyChart';
 
 interface Farm {
   id: string;
@@ -254,8 +253,6 @@ const Farms: React.FC = () => {
   const [farmSections, setFarmSections] = useState<{[key: string]: Section[]}>({});
   const [sectionBlocks, setSectionBlocks] = useState<{[key: string]: Block[]}>({});
   const [blockBeds, setBlockBeds] = useState<{[key: string]: Bed[]}>({});
-  const [showHierarchyChart, setShowHierarchyChart] = useState(false);
-  const [hierarchyFarm, setHierarchyFarm] = useState<Farm | null>(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
@@ -697,7 +694,7 @@ const Farms: React.FC = () => {
                               {isExpanded ? '▼' : '▶'}
                             </button>
                           </td>
-                          <td onClick={() => { setHierarchyFarm(farm); setShowHierarchyChart(true); }} className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:text-green-600">{farm.name}</td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{farm.name}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.area} acres</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.soilType}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -1294,13 +1291,7 @@ const Farms: React.FC = () => {
         );
       })()}
 
-      {/* Farm Hierarchy Chart */}
-      {showHierarchyChart && hierarchyFarm && (
-        <FarmHierarchyChart 
-          farm={hierarchyFarm} 
-          onClose={() => { setShowHierarchyChart(false); setHierarchyFarm(null); }} 
-        />
-      )}
+
     </div>
   );
 };
