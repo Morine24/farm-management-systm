@@ -44,7 +44,49 @@ const Inventory: React.FC = () => {
       const response = await fetch('/api/inventory');
       if (response.ok) {
         const data = await response.json();
-        setItems(Array.isArray(data) ? data : []);
+        const inventoryItems = Array.isArray(data) ? data : [];
+        setItems(inventoryItems);
+        
+        // Check for low stock and create notifications
+        const { addDoc, collection, query, where, getDocs } = await import('firebase/firestore');
+        const { db } = await import('../config/firebase');
+        
+        for (const item of inventoryItems) {
+          // Check if notification already exists for this item
+          const notifQuery = query(
+            collection(db, 'notifications'),
+            where('type', 'in', ['low_inventory', 'out_of_stock']),
+            where('data.itemId', '==', item.id),
+            where('read', '==', false)
+          );
+          const existingNotifs = await getDocs(notifQuery);
+          
+          if (existingNotifs.empty) {
+            if (item.quantity === 0) {
+              // Out of stock notification
+              await addDoc(collection(db, 'notifications'), {
+                type: 'out_of_stock',
+                title: '⚠️ Out of Stock',
+                message: `${item.name} is out of stock. Please reorder immediately.`,
+                priority: 'high',
+                read: false,
+                createdAt: new Date(),
+                data: { itemId: item.id, itemName: item.name }
+              });
+            } else if (item.quantity <= item.lowStockThreshold) {
+              // Low stock notification
+              await addDoc(collection(db, 'notifications'), {
+                type: 'low_inventory',
+                title: '📦 Low Stock Alert',
+                message: `${item.name} is running low (${item.quantity} ${item.unit} remaining). Threshold: ${item.lowStockThreshold} ${item.unit}`,
+                priority: 'medium',
+                read: false,
+                createdAt: new Date(),
+                data: { itemId: item.id, itemName: item.name, quantity: item.quantity }
+              });
+            }
+          }
+        }
       } else {
         setItems([]);
       }

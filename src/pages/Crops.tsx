@@ -78,8 +78,10 @@ const Crops: React.FC = () => {
   const [viewingCrop, setViewingCrop] = useState<Crop | null>(null);
   const [showProductivityModal, setShowProductivityModal] = useState(false);
   const [productivityRecords, setProductivityRecords] = useState<any[]>([]);
+  const [editingProductivity, setEditingProductivity] = useState<any>(null);
   const [showIrrigationModal, setShowIrrigationModal] = useState(false);
   const [irrigationRecords, setIrrigationRecords] = useState<any[]>([]);
+  const [editingIrrigation, setEditingIrrigation] = useState<any>(null);
   const [irrigationDate, setIrrigationDate] = useState(new Date().toISOString().split('T')[0]);
   const [activeTab, setActiveTab] = useState<'crops' | 'productivity' | 'irrigation'>('crops');
 
@@ -136,15 +138,30 @@ const Crops: React.FC = () => {
     const formData = new FormData(e.currentTarget);
     const { Timestamp } = await import('firebase/firestore');
     
+    const farmId = formData.get('farmId') as string;
+    const sectionId = formData.get('sectionId') as string;
+    const farm = farms.find(f => f.id === farmId);
+    const section = sections.find(s => s.id === sectionId);
+    
     const recordData = {
       date: Timestamp.fromDate(new Date(formData.get('date') as string)),
+      farmId,
+      farmName: farm?.name || '',
+      sectionId: sectionId || null,
+      sectionName: section?.name || '',
       produce: formData.get('produce') as string,
       quantity: formData.get('quantity') as string
     };
 
-    await addDoc(collection(db, 'cropProductivity'), recordData);
+    if (editingProductivity) {
+      await updateDoc(doc(db, 'cropProductivity', editingProductivity.id), recordData);
+      toast.success('Record updated');
+    } else {
+      await addDoc(collection(db, 'cropProductivity'), recordData);
+      toast.success('Record added');
+    }
     setShowProductivityModal(false);
-    toast.success('Productivity record added');
+    setEditingProductivity(null);
   };
 
   const handleIrrigationSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -152,8 +169,17 @@ const Crops: React.FC = () => {
     const formData = new FormData(e.currentTarget);
     const { Timestamp } = await import('firebase/firestore');
     
+    const farmId = formData.get('farmId') as string;
+    const sectionId = formData.get('sectionId') as string;
+    const farm = farms.find(f => f.id === farmId);
+    const section = sections.find(s => s.id === sectionId);
+    
     const recordData = {
       date: Timestamp.fromDate(new Date(formData.get('date') as string)),
+      farmId,
+      farmName: farm?.name || '',
+      sectionId: sectionId || null,
+      sectionName: section?.name || '',
       cropBlock: formData.get('cropBlock') as string,
       method: formData.get('method') as string,
       startTime: formData.get('startTime') as string,
@@ -162,10 +188,16 @@ const Crops: React.FC = () => {
       remarks: formData.get('remarks') as string
     };
 
-    await addDoc(collection(db, 'irrigation'), recordData);
+    if (editingIrrigation) {
+      await updateDoc(doc(db, 'irrigation', editingIrrigation.id), recordData);
+      toast.success('Record updated');
+    } else {
+      await addDoc(collection(db, 'irrigation'), recordData);
+      toast.success('Record added');
+    }
     setShowIrrigationModal(false);
+    setEditingIrrigation(null);
     fetchIrrigationRecords();
-    toast.success('Irrigation record added');
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -292,6 +324,7 @@ const Crops: React.FC = () => {
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Crop</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Planted</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Harvest</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
@@ -303,6 +336,7 @@ const Crops: React.FC = () => {
               <tr key={crop.id} onClick={() => setViewingCrop(crop)} className="hover:bg-gray-50 cursor-pointer">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{crop.variety}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{crop.farmName}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{crop.sectionName || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(crop.plantingDate).toLocaleDateString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">{new Date(crop.harvestDate).toLocaleDateString()}</td>
                 <td className="px-6 py-4 whitespace-nowrap">
@@ -341,16 +375,49 @@ const Crops: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produce</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {productivityRecords.map(record => (
               <tr key={record.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.date.toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.farmName || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.sectionName || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{record.produce}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.quantity}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {!isWorker && (
+                    <>
+                      <button onClick={async () => { 
+                        setEditingProductivity(record); 
+                        if (record.farmId) {
+                          onSnapshot(collection(db, 'sections'), (snapshot) => {
+                            const sectionsData = snapshot.docs
+                              .map(doc => ({ id: doc.id, ...doc.data() }))
+                              .filter((s: any) => s.farmId === record.farmId);
+                            setSections(sectionsData);
+                          });
+                        }
+                        setShowProductivityModal(true); 
+                      }} className="text-blue-600 hover:text-blue-900 mr-3">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={async () => {
+                        if (window.confirm('Delete this record?')) {
+                          await deleteDoc(doc(db, 'cropProductivity', record.id));
+                          toast.success('Record deleted');
+                        }
+                      }} className="text-red-600 hover:text-red-900">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -364,24 +431,58 @@ const Crops: React.FC = () => {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Crop/Block</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method Used</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Starting Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">End Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Frequency</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Remarks</th>
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
             {irrigationRecords.map(record => (
               <tr key={record.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.date.toLocaleDateString()}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.farmName || '-'}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">{record.sectionName || '-'}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">{record.cropBlock}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.method}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.startTime}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.endTime}</td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">{record.frequency}</td>
                 <td className="px-6 py-4 text-sm">{record.remarks}</td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {!isWorker && (
+                    <>
+                      <button onClick={async () => { 
+                        setEditingIrrigation(record); 
+                        if (record.farmId) {
+                          onSnapshot(collection(db, 'sections'), (snapshot) => {
+                            const sectionsData = snapshot.docs
+                              .map(doc => ({ id: doc.id, ...doc.data() }))
+                              .filter((s: any) => s.farmId === record.farmId);
+                            setSections(sectionsData);
+                          });
+                        }
+                        setShowIrrigationModal(true); 
+                      }} className="text-blue-600 hover:text-blue-900 mr-3">
+                        <Edit className="h-4 w-4" />
+                      </button>
+                      <button onClick={async () => {
+                        if (window.confirm('Delete this record?')) {
+                          await deleteDoc(doc(db, 'irrigation', record.id));
+                          toast.success('Record deleted');
+                          fetchIrrigationRecords();
+                        }
+                      }} className="text-red-600 hover:text-red-900">
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
@@ -535,41 +636,77 @@ const Crops: React.FC = () => {
       {showIrrigationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4">Add Irrigation Record</h2>
+            <h2 className="text-xl font-semibold mb-4">{editingIrrigation ? 'Edit' : 'Add'} Irrigation Record</h2>
             <form onSubmit={handleIrrigationSubmit}>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Date</label>
-                  <input type="date" name="date" required defaultValue={irrigationDate} className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="date" name="date" required defaultValue={editingIrrigation ? editingIrrigation.date.toISOString().split('T')[0] : irrigationDate} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Farm</label>
+                  <select 
+                    name="farmId" 
+                    required 
+                    defaultValue={editingIrrigation?.farmId}
+                    className="w-full px-3 py-2 border rounded-lg"
+                    onChange={async (e) => {
+                      const farmId = e.target.value;
+                      if (farmId) {
+                        onSnapshot(collection(db, 'sections'), (snapshot) => {
+                          const sectionsData = snapshot.docs
+                            .map(doc => ({ id: doc.id, ...doc.data() }))
+                            .filter((s: any) => s.farmId === farmId);
+                          setSections(sectionsData);
+                        });
+                      } else {
+                        setSections([]);
+                      }
+                    }}
+                  >
+                    <option value="">Select farm</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Section</label>
+                  <select name="sectionId" defaultValue={editingIrrigation?.sectionId} className="w-full px-3 py-2 border rounded-lg">
+                    <option value="">Select section (optional)</option>
+                    {sections.map(section => (
+                      <option key={section.id} value={section.id}>{section.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Crop/Block</label>
-                  <input type="text" name="cropBlock" required placeholder="e.g., Elephant farm" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="cropBlock" required defaultValue={editingIrrigation?.cropBlock} placeholder="e.g., Elephant farm" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Method Used</label>
-                  <input type="text" name="method" required placeholder="e.g., Drip, Sprinkler" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="method" required defaultValue={editingIrrigation?.method} placeholder="e.g., Drip, Sprinkler" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Starting Time</label>
-                  <input type="text" name="startTime" required placeholder="e.g., 8am" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="startTime" required defaultValue={editingIrrigation?.startTime} placeholder="e.g., 8am" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">End Time</label>
-                  <input type="text" name="endTime" required placeholder="e.g., 1pm" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="endTime" required defaultValue={editingIrrigation?.endTime} placeholder="e.g., 1pm" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Frequency</label>
-                  <input type="text" name="frequency" required placeholder="e.g., Twice weekly, Daily" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="frequency" required defaultValue={editingIrrigation?.frequency} placeholder="e.g., Twice weekly, Daily" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Remarks</label>
-                  <textarea name="remarks" rows={2} placeholder="e.g., Onions, Thyme blocks and 2 Vegetable blocks" className="w-full px-3 py-2 border rounded-lg"></textarea>
+                  <textarea name="remarks" rows={2} defaultValue={editingIrrigation?.remarks} placeholder="e.g., Onions, Thyme blocks and 2 Vegetable blocks" className="w-full px-3 py-2 border rounded-lg"></textarea>
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
-                <button type="button" onClick={() => setShowIrrigationModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Add Record</button>
+                <button type="button" onClick={() => { setShowIrrigationModal(false); setEditingIrrigation(null); }} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{editingIrrigation ? 'Update' : 'Add'} Record</button>
               </div>
             </form>
           </div>
@@ -579,25 +716,61 @@ const Crops: React.FC = () => {
       {showProductivityModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">Add Productivity Record</h2>
+            <h2 className="text-xl font-semibold mb-4">{editingProductivity ? 'Edit' : 'Add'} Productivity Record</h2>
             <form onSubmit={handleProductivitySubmit}>
               <div className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Date</label>
-                  <input type="date" name="date" required defaultValue={new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="date" name="date" required defaultValue={editingProductivity ? editingProductivity.date.toISOString().split('T')[0] : new Date().toISOString().split('T')[0]} className="w-full px-3 py-2 border rounded-lg" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Farm</label>
+                  <select 
+                    name="farmId" 
+                    required 
+                    defaultValue={editingProductivity?.farmId} 
+                    className="w-full px-3 py-2 border rounded-lg"
+                    onChange={async (e) => {
+                      const farmId = e.target.value;
+                      if (farmId) {
+                        onSnapshot(collection(db, 'sections'), (snapshot) => {
+                          const sectionsData = snapshot.docs
+                            .map(doc => ({ id: doc.id, ...doc.data() }))
+                            .filter((s: any) => s.farmId === farmId);
+                          setSections(sectionsData);
+                        });
+                      } else {
+                        setSections([]);
+                      }
+                    }}
+                  >
+                    <option value="">Select farm</option>
+                    {farms.map(farm => (
+                      <option key={farm.id} value={farm.id}>{farm.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Section</label>
+                  <select name="sectionId" defaultValue={editingProductivity?.sectionId} className="w-full px-3 py-2 border rounded-lg">
+                    <option value="">Select section (optional)</option>
+                    {sections.map(section => (
+                      <option key={section.id} value={section.id}>{section.name}</option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Produce</label>
-                  <input type="text" name="produce" required placeholder="e.g., Basil, Tomatoes" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="produce" required defaultValue={editingProductivity?.produce} placeholder="e.g., Basil, Tomatoes" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Quantity</label>
-                  <input type="text" name="quantity" required placeholder="e.g., 290kgs" className="w-full px-3 py-2 border rounded-lg" />
+                  <input type="text" name="quantity" required defaultValue={editingProductivity?.quantity} placeholder="e.g., 290kgs" className="w-full px-3 py-2 border rounded-lg" />
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
-                <button type="button" onClick={() => setShowProductivityModal(false)} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">Add Record</button>
+                <button type="button" onClick={() => { setShowProductivityModal(false); setEditingProductivity(null); }} className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200">Cancel</button>
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{editingProductivity ? 'Update' : 'Add'} Record</button>
               </div>
             </form>
           </div>

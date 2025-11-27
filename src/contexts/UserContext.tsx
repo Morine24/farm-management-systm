@@ -7,6 +7,8 @@ interface User {
   role: 'super_admin' | 'admin' | 'manager' | 'worker';
   status: string;
   assignedFarms?: string[];
+  phone?: string;
+  photoUrl?: string;
 }
 
 interface UserContextType {

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bell, X, Check, Trash2 } from 'lucide-react';
-import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc, where } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, limit, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/firebase';
 import { useUser } from '../contexts/UserContext';
 
@@ -19,7 +19,7 @@ interface Notification {
 }
 
 const NotificationCenter: React.FC = () => {
-  const { user, isWorker } = useUser();
+  const { user, isWorker, isAdmin, isManager, isSuperAdmin } = useUser();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [showPanel, setShowPanel] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -30,45 +30,62 @@ const NotificationCenter: React.FC = () => {
     const q = query(
       collection(db, 'notifications'),
       orderBy('createdAt', 'desc'),
-      limit(50)
+      limit(100)
     );
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      let notifs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Notification[];
+      let notifs = snapshot.docs
+        .map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as Notification[];
       
-      // Filter notifications based on user role and assignment
+      // Filter by role
       if (isWorker) {
+        const workerNotificationTypes = [
+          'task_assigned',
+          'task_overdue', 
+          'task_due_soon',
+          'task_completed',
+          'task_updated'
+        ];
+        
         notifs = notifs.filter(notif => {
-          // Show notifications that are:
-          // 1. Assigned specifically to this worker
-          // 2. Targeted to workers in general
-          // 3. Task-related notifications for tasks assigned to this worker
           return (
-            notif.assignedTo === user.name ||
-            notif.targetUser === user.name ||
-            notif.targetRole === 'worker' ||
-            (notif.type?.includes('task') && notif.data?.assignedTo === user.name) ||
-            (!notif.targetRole && !notif.targetUser && !notif.assignedTo) // General notifications
+            workerNotificationTypes.includes(notif.type) && 
+            (notif.assignedTo === user.name || 
+             notif.targetUser === user.name ||
+             notif.data?.assignedTo === user.name)
           );
         });
       }
       
-      // Remove duplicates based on title and message combination
-      const uniqueNotifs = notifs.filter((notif, index, self) => 
-        index === self.findIndex(n => 
-          n.title === notif.title && 
-          n.message === notif.message && 
-          n.type === notif.type
-        )
-      );
+      // Remove duplicates (keep read version if exists, otherwise keep first)
+      const seen = new Map();
+      const uniqueNotifs = notifs.filter(notif => {
+        const key = `${notif.title}-${notif.message}-${notif.type}`;
+        const existing = seen.get(key);
+        
+        if (!existing) {
+          seen.set(key, notif);
+          return true;
+        }
+        
+        // If current is read and existing is not, replace it
+        if (notif.read && !existing.read) {
+          seen.set(key, notif);
+          return false;
+        }
+        
+        return false;
+      });
+      
+      const unreadNotifs = uniqueNotifs.filter(n => !n.read);
       
       setNotifications(uniqueNotifs);
-      setUnreadCount(uniqueNotifs.filter(n => !n.read).length);
+      setUnreadCount(unreadNotifs.length);
       
-      // Show browser notification for new high priority items
+      // Browser notifications for unread high priority
       uniqueNotifs.forEach(n => {
         if (!n.read && n.priority === 'high' && Notification.permission === 'granted') {
           new Notification(n.title, {
@@ -79,13 +96,12 @@ const NotificationCenter: React.FC = () => {
       });
     });
 
-    // Request notification permission
     if (Notification.permission === 'default') {
       Notification.requestPermission();
     }
 
     return () => unsubscribe();
-  }, [user, isWorker]);
+  }, [user, isWorker, isAdmin, isManager, isSuperAdmin]);
 
   const markAsRead = async (id: string) => {
     try {
@@ -105,8 +121,10 @@ const NotificationCenter: React.FC = () => {
 
   const markAllAsRead = async () => {
     try {
-      const unreadNotifs = notifications.filter(n => !n.read);
-      await Promise.all(unreadNotifs.map(n => updateDoc(doc(db, 'notifications', n.id), { read: true })));
+      const updates = notifications.map(n => 
+        updateDoc(doc(db, 'notifications', n.id), { read: true })
+      );
+      await Promise.all(updates);
     } catch (error) {
       console.error('Failed to mark all as read:', error);
     }

@@ -7,14 +7,20 @@ import { ExpenseBreakdown, IncomeVsExpenses, ProfitMarginChart, FinancialSummary
 import { BarChart3, TrendingUp, Map, DollarSign } from 'lucide-react';
 
 const Analytics: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'financial' | 'crops' | 'fields'>('financial');
+  const [activeTab, setActiveTab] = useState<'financial' | 'crops' | 'fields' | 'production'>('financial');
   const [farms, setFarms] = useState<any[]>([]);
+  const [sections, setSections] = useState<any[]>([]);
   const [crops, setCrops] = useState<any[]>([]);
   const [financialRecords, setFinancialRecords] = useState<any[]>([]);
+  const [productivityRecords, setProductivityRecords] = useState<any[]>([]);
 
   useEffect(() => {
     const unsubFarms = onSnapshot(collection(db, 'farms'), (snapshot) => {
       setFarms(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    const unsubSections = onSnapshot(collection(db, 'sections'), (snapshot) => {
+      setSections(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
     const unsubCrops = onSnapshot(collection(db, 'crops'), (snapshot) => {
@@ -25,10 +31,16 @@ const Analytics: React.FC = () => {
       setFinancialRecords(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
     });
 
+    const unsubProductivity = onSnapshot(collection(db, 'cropProductivity'), (snapshot) => {
+      setProductivityRecords(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
     return () => {
       unsubFarms();
+      unsubSections();
       unsubCrops();
       unsubFinancial();
+      unsubProductivity();
     };
   }, []);
 
@@ -135,6 +147,17 @@ const Analytics: React.FC = () => {
             <Map className="h-4 w-4" />
             Field Status
           </button>
+          <button
+            onClick={() => setActiveTab('production')}
+            className={`py-2 px-1 border-b-2 font-medium text-sm flex items-center gap-2 ${
+              activeTab === 'production'
+                ? 'border-green-500 text-green-600'
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            <TrendingUp className="h-4 w-4" />
+            Production & Costs
+          </button>
         </nav>
       </div>
 
@@ -214,6 +237,95 @@ const Analytics: React.FC = () => {
             { id: '2', name: 'South Field', status: 'active', soilHealth: { ph: 6.5, moisture: 50, temperature: 23 }, cropType: 'Wheat', area: 8 },
             { id: '3', name: 'East Field', status: 'maintenance', soilHealth: { ph: 7.0, moisture: 40, temperature: 21 }, area: 6 }
           ]} />
+        </div>
+      )}
+
+      {activeTab === 'production' && (
+        <div className="space-y-6">
+          {farms.map(farm => {
+            const farmSections = sections.filter(s => s.farmId === farm.id);
+            const farmIncome = financialRecords.filter(r => r.type === 'income' && r.farmId === farm.id).reduce((sum, r) => sum + (r.amount || 0), 0);
+            const farmExpenses = financialRecords.filter(r => r.type === 'expense' && r.farmId === farm.id).reduce((sum, r) => sum + (r.amount || 0), 0);
+            const farmProfit = farmIncome - farmExpenses;
+            const farmProduction = productivityRecords.filter(r => r.farmId === farm.id);
+
+            return (
+              <div key={farm.id} className="bg-white rounded-lg shadow">
+                <div className="p-6 border-b">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="text-xl font-bold text-gray-900">{farm.name}</h3>
+                      <p className="text-sm text-gray-500">{farm.area} acres</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-gray-600">Net Profit</p>
+                      <p className={`text-2xl font-bold ${farmProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        KSh {farmProfit.toLocaleString()}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4 mt-4">
+                    <div>
+                      <p className="text-xs text-gray-500">Income</p>
+                      <p className="text-lg font-semibold text-green-600">KSh {farmIncome.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Expenses</p>
+                      <p className="text-lg font-semibold text-red-600">KSh {farmExpenses.toLocaleString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500">Production Records</p>
+                      <p className="text-lg font-semibold text-blue-600">{farmProduction.length}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {farmSections.length > 0 && (
+                  <div className="p-6">
+                    <h4 className="font-semibold mb-3">Sections</h4>
+                    <div className="overflow-x-auto">
+                      <table className="min-w-full divide-y divide-gray-200">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Area</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Crops</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Production</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Income</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Expenses</th>
+                            <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Profit</th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {farmSections.map(section => {
+                            const sectionCrops = crops.filter(c => c.sectionId === section.id);
+                            const sectionProduction = productivityRecords.filter(r => r.sectionId === section.id);
+                            const sectionIncome = financialRecords.filter(r => r.type === 'income' && r.sectionId === section.id).reduce((sum, r) => sum + (r.amount || 0), 0);
+                            const sectionExpenses = financialRecords.filter(r => r.type === 'expense' && r.sectionId === section.id).reduce((sum, r) => sum + (r.amount || 0), 0);
+                            const sectionProfit = sectionIncome - sectionExpenses;
+
+                            return (
+                              <tr key={section.id}>
+                                <td className="px-4 py-3 text-sm font-medium text-gray-900">{section.name}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{section.area} acres</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{sectionCrops.length}</td>
+                                <td className="px-4 py-3 text-sm text-gray-600">{sectionProduction.length} records</td>
+                                <td className="px-4 py-3 text-sm text-green-600">KSh {sectionIncome.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-sm text-red-600">KSh {sectionExpenses.toLocaleString()}</td>
+                                <td className="px-4 py-3 text-sm font-semibold ${sectionProfit >= 0 ? 'text-green-600' : 'text-red-600'}">
+                                  KSh {sectionProfit.toLocaleString()}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

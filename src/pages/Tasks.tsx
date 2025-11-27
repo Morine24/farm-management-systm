@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Clock, User, AlertCircle, CheckCircle, Plus, Filter, MapPin } from 'lucide-react';
+import { Calendar, Clock, User, AlertCircle, CheckCircle, Plus, Filter, MapPin, Droplets, Sprout, Wheat, Tractor, ClipboardList } from 'lucide-react';
 import { format } from 'date-fns';
 import { collection, onSnapshot, addDoc, query, where } from 'firebase/firestore';
 import { db } from '../config/firebase';
@@ -281,11 +281,11 @@ const Tasks: React.FC = () => {
 
   const getTaskIcon = (type: string) => {
     switch (type) {
-      case 'irrigating': return '💧';
-      case 'fertilizing': return '🌱';
-      case 'harvesting': return '🌾';
-      case 'plowing': return '🚜';
-      default: return '📋';
+      case 'irrigating': return <Droplets className="h-5 w-5 text-blue-500" />;
+      case 'fertilizing': return <Sprout className="h-5 w-5 text-green-500" />;
+      case 'harvesting': return <Wheat className="h-5 w-5 text-yellow-600" />;
+      case 'plowing': return <Tractor className="h-5 w-5 text-gray-600" />;
+      default: return <ClipboardList className="h-5 w-5 text-gray-500" />;
     }
   };
 
@@ -364,7 +364,7 @@ const Tasks: React.FC = () => {
                 <tr key={task.id} className="hover:bg-gray-50">
                   <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <span className="text-xl sm:text-2xl mr-1 sm:mr-2">{getTaskIcon(task.type)}</span>
+                      <span className="mr-1 sm:mr-2">{getTaskIcon(task.type)}</span>
                       <div className="font-medium text-gray-900 text-xs sm:text-sm">{task.type}</div>
                     </div>
                   </td>

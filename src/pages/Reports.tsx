@@ -409,12 +409,12 @@ const Reports: React.FC = () => {
         break;
 
       case 'productivity':
-        headers = ['Date', 'Type', 'Produce', 'Quantity'];
+        headers = ['Date', 'Type', 'Farm', 'Section', 'Produce', 'Quantity'];
         csvData = reportData.records.map((r: any) => {
           const date = r.date?.toDate ? r.date.toDate() : new Date(r.date);
-          return [date.toLocaleDateString(), r.type === 'crop' ? 'Crop' : 'Livestock', r.produce, r.quantity];
+          return [date.toLocaleDateString(), r.type === 'crop' ? 'Crop' : 'Livestock', r.farmName || '-', r.sectionName || '-', r.produce, r.quantity];
         });
-        footer = `"TOTAL RECORDS","${reportData.totalRecords}",,`;
+        footer = `"TOTAL RECORDS","${reportData.totalRecords}",,,,`;
         break;
 
       case 'poultryFeeding':
@@ -427,12 +427,12 @@ const Reports: React.FC = () => {
         break;
 
       case 'irrigation':
-        headers = ['Date', 'Crop/Block', 'Method Used', 'Starting Time', 'End Time', 'Frequency', 'Remarks'];
+        headers = ['Date', 'Farm', 'Section', 'Crop/Block', 'Method Used', 'Starting Time', 'End Time', 'Frequency', 'Remarks'];
         csvData = reportData.records.map((r: any) => {
           const date = r.date?.toDate ? r.date.toDate() : new Date(r.date);
-          return [date.toLocaleDateString(), r.cropBlock, r.method, r.startTime, r.endTime, r.frequency, r.remarks || '-'];
+          return [date.toLocaleDateString(), r.farmName || '-', r.sectionName || '-', r.cropBlock, r.method, r.startTime, r.endTime, r.frequency, r.remarks || '-'];
         });
-        footer = `"TOTAL RECORDS","${reportData.totalRecords}",,,,,,`;
+        footer = `"TOTAL RECORDS","${reportData.totalRecords}",,,,,,,,`;
         break;
     }
 
@@ -857,6 +857,8 @@ const Reports: React.FC = () => {
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Type</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Produce</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Quantity</th>
                     </tr>
@@ -874,6 +876,8 @@ const Reports: React.FC = () => {
                               {record.type === 'crop' ? 'Crop' : 'Livestock'}
                             </span>
                           </td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.farmName || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.sectionName || '-'}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{record.produce}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{record.quantity}</td>
                         </tr>
@@ -975,6 +979,8 @@ const Reports: React.FC = () => {
                   <thead className="bg-gray-50">
                     <tr>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Farm</th>
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Section</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Crop/Block</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Method Used</th>
                       <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Starting Time</th>
@@ -989,6 +995,8 @@ const Reports: React.FC = () => {
                       return (
                         <tr key={record.id}>
                           <td className="px-4 py-3 text-sm text-gray-900">{date.toLocaleDateString()}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.farmName || '-'}</td>
+                          <td className="px-4 py-3 text-sm text-gray-900">{record.sectionName || '-'}</td>
                           <td className="px-4 py-3 text-sm font-medium text-gray-900">{record.cropBlock}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{record.method}</td>
                           <td className="px-4 py-3 text-sm text-gray-900">{record.startTime}</td>

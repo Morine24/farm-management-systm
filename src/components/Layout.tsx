@@ -17,10 +17,12 @@ import {
   Download,
   FileText,
   Beef,
-  BarChart3
+  BarChart3,
+  Upload
 } from 'lucide-react';
 import { useUser } from '../contexts/UserContext';
 import NotificationCenter from './NotificationCenter';
+import ProfileModal from './ProfileModal';
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -29,6 +31,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+  const [showLogoModal, setShowLogoModal] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>('/loosian-logo.jpg');
   const location = useLocation();
   const navigate = useNavigate();
   const { user, setUser, isSuperAdmin, isAdmin, isManager, isWorker, canManageUsers } = useUser();
@@ -45,6 +51,41 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     };
     window.addEventListener('beforeinstallprompt', handler);
     return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleLogoClick = (e: React.MouseEvent) => {
+    if (isSuperAdmin) {
+      e.preventDefault();
+      setShowLogoModal(true);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setLogoFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const saveLogo = () => {
+    if (logoFile) {
+      // Save to localStorage for now (in production, upload to server/Firebase Storage)
+      localStorage.setItem('farmLogo', logoPreview);
+      alert('Logo updated successfully!');
+    }
+    setShowLogoModal(false);
+  };
+
+  useEffect(() => {
+    const savedLogo = localStorage.getItem('farmLogo');
+    if (savedLogo) {
+      setLogoPreview(savedLogo);
+    }
   }, []);
 
 
@@ -100,10 +141,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         <div className="fixed inset-0 bg-gray-600 bg-opacity-75" onClick={() => setSidebarOpen(false)} />
         <div className="fixed inset-y-0 left-0 flex w-64 flex-col bg-white">
           <div className="flex h-16 items-center justify-between px-4 border-b">
-            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity" onClick={() => setSidebarOpen(false)}>
-              <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
+            <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={(e) => { handleLogoClick(e); setSidebarOpen(false); }}>
+              <img src={logoPreview} alt="Loosian Farm" className="h-8 w-8 rounded" />
               <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
-            </Link>
+            </div>
             <button onClick={() => setSidebarOpen(false)}>
               <X className="h-6 w-6" />
             </button>
@@ -135,10 +176,10 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       <div className="hidden lg:fixed lg:inset-y-0 lg:flex lg:w-64 lg:flex-col">
         <div className="flex flex-col flex-grow bg-white border-r border-gray-200">
           <div className="flex h-16 items-center px-4 border-b">
-            <Link to="/" className="flex items-center space-x-2 hover:opacity-80 transition-opacity">
-              <img src="/loosian-logo.jpg" alt="Loosian Farm" className="h-8 w-8 rounded" />
+            <div className="flex items-center space-x-2 cursor-pointer hover:opacity-80 transition-opacity" onClick={handleLogoClick}>
+              <img src={logoPreview} alt="Loosian Farm" className="h-8 w-8 rounded" />
               <h1 className="text-xl font-bold text-primary-600">Loosian Farm</h1>
-            </Link>
+            </div>
           </div>
           <nav className="flex-1 px-4 py-4">
             {navigation.map((item) => {
@@ -182,12 +223,19 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
               <NotificationCenter />
               <div className="flex items-center space-x-1 sm:space-x-2">
-                <div className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center">
-                  <span className="text-sm font-medium text-white">
-                    {user?.name?.charAt(0) || 'U'}
-                  </span>
+                <div 
+                  onClick={() => setShowProfileModal(true)}
+                  className="h-8 w-8 rounded-full bg-primary-500 flex items-center justify-center cursor-pointer hover:opacity-80"
+                >
+                  {user?.photoUrl ? (
+                    <img src={user.photoUrl} alt={user.name} className="h-8 w-8 rounded-full object-cover" />
+                  ) : (
+                    <span className="text-sm font-medium text-white">
+                      {user?.name?.charAt(0) || 'U'}
+                    </span>
+                  )}
                 </div>
-                <span className="hidden sm:inline text-sm text-gray-700">{user?.name}</span>
+                <span className="hidden sm:inline text-sm text-gray-700 cursor-pointer hover:text-primary-600" onClick={() => setShowProfileModal(true)}>{user?.name}</span>
                 <button
                   onClick={() => {
                     setUser(null);
@@ -207,6 +255,39 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           {children}
         </main>
       </div>
+
+      {/* Logo Edit Modal */}
+      {showLogoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+          <div className="bg-white rounded-lg p-6 w-96 max-w-[90vw]">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold">Farm Logo</h3>
+              <button onClick={() => setShowLogoModal(false)}>
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="flex flex-col items-center space-y-4">
+              <img src={logoPreview} alt="Farm Logo" className="h-32 w-32 rounded-lg object-cover border" />
+              
+              <label className="flex items-center space-x-2 px-4 py-2 bg-primary-600 text-white rounded-lg cursor-pointer hover:bg-primary-700">
+                <Upload className="h-4 w-4" />
+                <span>Upload New Logo</span>
+                <input type="file" accept="image/*" onChange={handleLogoUpload} className="hidden" />
+              </label>
+              
+              {logoFile && (
+                <button onClick={saveLogo} className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+                  Save Logo
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile Modal */}
+      {showProfileModal && <ProfileModal onClose={() => setShowProfileModal(false)} />}
     </div>
   );
 };

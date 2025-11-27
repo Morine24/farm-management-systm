@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Droplets, ThermometerSun, ArrowLeft, Layers, Calendar, TrendingUp } from 'lucide-react';
+import { Plus, Edit, Trash2, Droplets, ThermometerSun, ArrowLeft, Layers, Calendar, TrendingUp, Folder, Package, Sprout } from 'lucide-react';
 import { db } from '../config/firebase';
 import { collection, onSnapshot, addDoc, deleteDoc, doc, query, where, getDocs } from 'firebase/firestore';
 import axios from 'axios';
 import toast, { Toaster } from 'react-hot-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useUser } from '../contexts/UserContext';
+import FarmHierarchyChart from '../components/FarmHierarchyChart';
 
 interface Farm {
   id: string;
@@ -253,6 +254,8 @@ const Farms: React.FC = () => {
   const [farmSections, setFarmSections] = useState<{[key: string]: Section[]}>({});
   const [sectionBlocks, setSectionBlocks] = useState<{[key: string]: Block[]}>({});
   const [blockBeds, setBlockBeds] = useState<{[key: string]: Bed[]}>({});
+  const [showHierarchyChart, setShowHierarchyChart] = useState(false);
+  const [hierarchyFarm, setHierarchyFarm] = useState<Farm | null>(null);
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'farms'), (snapshot) => {
@@ -300,6 +303,42 @@ const Farms: React.FC = () => {
     }
   };
 
+  const handleDeleteSection = async (sectionId: string) => {
+    if (window.confirm('Delete this section?')) {
+      try {
+        await axios.delete(`${API_URL}/sections/${sectionId}`);
+        toast.success('Section deleted successfully');
+      } catch (error) {
+        console.error('Failed to delete section:', error);
+        toast.error('Failed to delete section');
+      }
+    }
+  };
+
+  const handleDeleteBlock = async (blockId: string) => {
+    if (window.confirm('Delete this block?')) {
+      try {
+        await axios.delete(`${API_URL}/blocks/${blockId}`);
+        toast.success('Block deleted successfully');
+      } catch (error) {
+        console.error('Failed to delete block:', error);
+        toast.error('Failed to delete block');
+      }
+    }
+  };
+
+  const handleDeleteBed = async (bedId: string) => {
+    if (window.confirm('Delete this bed?')) {
+      try {
+        await axios.delete(`${API_URL}/beds/${bedId}`);
+        toast.success('Bed deleted successfully');
+      } catch (error) {
+        console.error('Failed to delete bed:', error);
+        toast.error('Failed to delete bed');
+      }
+    }
+  };
+
   const handleEditFarm = async (farmData: Partial<Farm>) => {
     if (!editingFarm) return;
     try {
@@ -325,6 +364,22 @@ const Farms: React.FC = () => {
         case 'section':
           const farmId = selectedFarm ? selectedFarm.id : formData.get('farmId') as string;
           const area = parseFloat(formData.get('area') as string);
+          
+          // Validate section area doesn't exceed farm area
+          const farm = farms.find(f => f.id === farmId);
+          if (farm) {
+            const q = query(collection(db, 'sections'), where('farmId', '==', farmId));
+            const snapshot = await getDocs(q);
+            const existingSections = snapshot.docs.map(doc => doc.data() as Section);
+            const totalExistingArea = existingSections.reduce((sum, s) => sum + s.area, 0);
+            const remainingArea = farm.area - totalExistingArea;
+            
+            if (area > remainingArea) {
+              toast.error(`Cannot add section. Only ${remainingArea.toFixed(1)} acres available (Farm: ${farm.area} acres, Used: ${totalExistingArea.toFixed(1)} acres)`);
+              return;
+            }
+          }
+          
           await axios.post(`${API_URL}/sections`, { name, area, farmId });
           toast.success(`Section "${name}" added successfully!`);
           break;
@@ -642,7 +697,7 @@ const Farms: React.FC = () => {
                               {isExpanded ? '▼' : '▶'}
                             </button>
                           </td>
-                          <td onClick={() => setSelectedFarm(farm)} className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer">{farm.name}</td>
+                          <td onClick={() => { setHierarchyFarm(farm); setShowHierarchyChart(true); }} className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 cursor-pointer hover:text-green-600">{farm.name}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.area} acres</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{farm.soilType}</td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -672,7 +727,7 @@ const Farms: React.FC = () => {
                             <React.Fragment key={section.id}>
                               <tr className="bg-blue-50">
                                 <td></td>
-                                <td colSpan={7} className="px-6 py-2">
+                                <td colSpan={6} className="px-6 py-2">
                                   <div className="ml-4 text-sm flex items-center">
                                     <button onClick={async (e) => {
                                       e.stopPropagation();
@@ -690,9 +745,17 @@ const Farms: React.FC = () => {
                                     }} className="text-blue-600 hover:text-blue-800 mr-2">
                                       {isSectionExpanded ? '▼' : '▶'}
                                     </button>
-                                    <span className="font-semibold text-blue-900">📁 {section.name}</span>
+                                    <Folder className="h-4 w-4 text-blue-900 inline mr-1" />
+                                    <span className="font-semibold text-blue-900">{section.name}</span>
                                     <span className="text-blue-600 ml-2">({section.area} acres)</span>
                                   </div>
+                                </td>
+                                <td className="px-6 py-2 text-right">
+                                  {!isManager && (
+                                    <button onClick={(e) => { e.stopPropagation(); handleDeleteSection(section.id); }} className="text-red-600 hover:text-red-900">
+                                      <Trash2 className="h-4 w-4" />
+                                    </button>
+                                  )}
                                 </td>
                               </tr>
                               {isSectionExpanded && blocks.length > 0 && blocks.map(block => {
@@ -702,7 +765,7 @@ const Farms: React.FC = () => {
                                   <React.Fragment key={block.id}>
                                     <tr className="bg-purple-50">
                                       <td></td>
-                                      <td colSpan={7} className="px-6 py-2">
+                                      <td colSpan={6} className="px-6 py-2">
                                         <div className="ml-8 text-sm flex items-center">
                                           <button onClick={async (e) => {
                                             e.stopPropagation();
@@ -720,20 +783,36 @@ const Farms: React.FC = () => {
                                           }} className="text-purple-600 hover:text-purple-800 mr-2">
                                             {isBlockExpanded ? '▼' : '▶'}
                                           </button>
-                                          <span className="font-semibold text-purple-900">📦 {block.name}</span>
+                                          <Package className="h-4 w-4 text-purple-900 inline mr-1" />
+                                          <span className="font-semibold text-purple-900">{block.name}</span>
                                           <span className="text-purple-600 ml-2">({block.cropType})</span>
                                         </div>
+                                      </td>
+                                      <td className="px-6 py-2 text-right">
+                                        {!isManager && (
+                                          <button onClick={(e) => { e.stopPropagation(); handleDeleteBlock(block.id); }} className="text-red-600 hover:text-red-900">
+                                            <Trash2 className="h-4 w-4" />
+                                          </button>
+                                        )}
                                       </td>
                                     </tr>
                                     {isBlockExpanded && beds.length > 0 && beds.map(bed => (
                                       <tr key={bed.id} className="bg-green-50">
                                         <td></td>
-                                        <td colSpan={7} className="px-6 py-2">
+                                        <td colSpan={6} className="px-6 py-2">
                                           <div className="ml-12 text-sm">
-                                            <span className="font-semibold text-green-900">🌱 {bed.name}</span>
+                                            <Sprout className="h-4 w-4 text-green-900 inline mr-1" />
+                                            <span className="font-semibold text-green-900">{bed.name}</span>
                                             <span className="text-green-600 ml-2">({bed.length}m × {bed.width}m)</span>
                                             <span className="text-green-700 ml-2 font-medium">• Crop: {bed.cropType || 'None'}</span>
                                           </div>
+                                        </td>
+                                        <td className="px-6 py-2 text-right">
+                                          {!isManager && (
+                                            <button onClick={(e) => { e.stopPropagation(); handleDeleteBed(bed.id); }} className="text-red-600 hover:text-red-900">
+                                              <Trash2 className="h-4 w-4" />
+                                            </button>
+                                          )}
                                         </td>
                                       </tr>
                                     ))}
@@ -1214,6 +1293,14 @@ const Farms: React.FC = () => {
         </div>
         );
       })()}
+
+      {/* Farm Hierarchy Chart */}
+      {showHierarchyChart && hierarchyFarm && (
+        <FarmHierarchyChart 
+          farm={hierarchyFarm} 
+          onClose={() => { setShowHierarchyChart(false); setHierarchyFarm(null); }} 
+        />
+      )}
     </div>
   );
 };
