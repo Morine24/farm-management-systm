@@ -9,7 +9,7 @@ import Layout from './components/Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WorkerDashboard from './pages/WorkerDashboard';
-import FinancialDashboard from './pages/FinancialDashboard';
+
 import Farms from './pages/Farms';
 import AddSection from './pages/AddSection';
 import Crops from './pages/Crops';
@@ -61,7 +61,7 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, {hasError: bo
 }
 
 const AppRoutes: React.FC = () => {
-  const { user, isSuperAdmin, isAdmin, isManager, isWorker, canManageUsers } = useUser();
+  const { user, isAdmin, isManager, isWorker } = useUser();
 
   useEffect(() => {
     if (user) {
