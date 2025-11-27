@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: farm-management-frontend
+    env: static
+    buildCommand: npm install && npm run build
+    staticPublishPath: ./build
+    envVars:
+      - key: NODE_OPTIONS
+        value: --max_old_space_size=460

@@ -1,10 +1,14 @@
 @echo off
-echo Starting Farm Management Frontend...
+echo ========================================
+echo Starting Farm Management System
+echo ========================================
 echo.
-
-echo Installing dependencies...
-npm install
-
+cd farm-management-backend
+start "Farm Management Server" cmd /k "npm start"
 echo.
-echo Starting development server...
-npm start
+echo Server is starting...
+echo.
+echo Visit: http://localhost:5000
+echo.
+timeout /t 3 > nul
+start http://localhost:5000
