@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate PWA Icons</title>
+    <style>
+        body { font-family: Arial; padding: 20px; text-align: center; }
+        canvas { border: 1px solid #ccc; margin: 10px; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Farm Management PWA Icon Generator</h1>
+    <p>Click the buttons below to download the icons</p>
+    
+    <canvas id="canvas192" width="192" height="192"></canvas>
+    <canvas id="canvas512" width="512" height="512"></canvas>
+    
+    <div>
+        <button onclick="downloadIcon(192)">Download 192x192</button>
+        <button onclick="downloadIcon(512)">Download 512x512</button>
+    </div>
+
+    <script>
+        function drawIcon(size) {
+            const canvas = document.getElementById('canvas' + size);
+            const ctx = canvas.getContext('2d');
+            
+            // Background
+            ctx.fillStyle = '#22c55e';
+            ctx.fillRect(0, 0, size, size);
+            
+            // Draw farm icon (simplified tractor/plant)
+            ctx.fillStyle = '#ffffff';
+            
+            // Plant stem
+            const centerX = size / 2;
+            const centerY = size / 2;
+            const scale = size / 192;
+            
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY + 40 * scale);
+            ctx.lineTo(centerX, centerY - 20 * scale);
+            ctx.lineWidth = 8 * scale;
+            ctx.strokeStyle = '#ffffff';
+            ctx.stroke();
+            
+            // Leaves
+            ctx.beginPath();
+            ctx.ellipse(centerX - 25 * scale, centerY - 10 * scale, 20 * scale, 30 * scale, -0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX + 25 * scale, centerY - 10 * scale, 20 * scale, 30 * scale, 0.5, 0, Math.PI * 2);
+            ctx.fill();
+            
+            ctx.beginPath();
+            ctx.ellipse(centerX, centerY - 30 * scale, 25 * scale, 35 * scale, 0, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // Ground line
+            ctx.beginPath();
+            ctx.moveTo(centerX - 60 * scale, centerY + 40 * scale);
+            ctx.lineTo(centerX + 60 * scale, centerY + 40 * scale);
+            ctx.lineWidth = 4 * scale;
+            ctx.stroke();
+        }
+        
+        function downloadIcon(size) {
+            drawIcon(size);
+            const canvas = document.getElementById('canvas' + size);
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'icon-' + size + '.png';
+                a.click();
+                URL.revokeObjectURL(url);
+            });
+        }
+        
+        // Draw icons on load
+        drawIcon(192);
+        drawIcon(512);
+    </script>
+</body>
+</html>

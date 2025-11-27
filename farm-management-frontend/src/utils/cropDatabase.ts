@@ -1,0 +1,587 @@
+export interface CropData {
+  name: string;
+  category: string;
+  growthDays: number;
+  wateringFrequency: number;
+  weedingFrequency: number;
+  fertilizerSchedule: number[];
+  fertilizers: string[];
+  pestControlFrequency: number;
+  pesticides: string[];
+  yieldPerAcre: number;
+  optimalTemp: string;
+  soilType: string[];
+}
+
+export const CROP_DATABASE: Record<string, CropData> = {
+  'Maize': {
+    name: 'Maize',
+    category: 'Cereal',
+    growthDays: 90,
+    wateringFrequency: 7,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 23-23-0', 'Urea (46-0-0)', 'DAP (18-46-0)'],
+    pestControlFrequency: 14,
+    pesticides: ['Cypermethrin', 'Lambda-cyhalothrin', 'Imidacloprid'],
+    yieldPerAcre: 2500,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Wheat': {
+    name: 'Wheat',
+    category: 'Cereal',
+    growthDays: 120,
+    wateringFrequency: 12,
+    weedingFrequency: 21,
+    fertilizerSchedule: [28, 56],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)', 'NPK 12-32-16'],
+    pestControlFrequency: 21,
+    pesticides: ['Mancozeb', 'Propiconazole', 'Chlorpyrifos'],
+    yieldPerAcre: 2000,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Rice': {
+    name: 'Rice',
+    category: 'Cereal',
+    growthDays: 105,
+    wateringFrequency: 3,
+    weedingFrequency: 14,
+    fertilizerSchedule: [14, 35, 56],
+    fertilizers: ['Urea (46-0-0)', 'NPK 17-17-17', 'Potash (0-0-60)'],
+    pestControlFrequency: 10,
+    pesticides: ['Carbofuran', 'Fipronil', 'Tricyclazole'],
+    yieldPerAcre: 3000,
+    optimalTemp: '25-35°C',
+    soilType: ['Clay', 'Silt']
+  },
+  'Soybeans': {
+    name: 'Soybeans',
+    category: 'Legume',
+    growthDays: 75,
+    wateringFrequency: 6,
+    weedingFrequency: 14,
+    fertilizerSchedule: [14, 35],
+    fertilizers: ['DAP (18-46-0)', 'NPK 10-26-26', 'Potash (0-0-60)'],
+    pestControlFrequency: 10,
+    pesticides: ['Chlorpyrifos', 'Quinalphos', 'Thiamethoxam'],
+    yieldPerAcre: 1800,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Beans': {
+    name: 'Beans',
+    category: 'Legume',
+    growthDays: 60,
+    wateringFrequency: 5,
+    weedingFrequency: 14,
+    fertilizerSchedule: [14, 35],
+    fertilizers: ['DAP (18-46-0)', 'NPK 10-26-26'],
+    pestControlFrequency: 10,
+    pesticides: ['Dimethoate', 'Malathion', 'Cypermethrin'],
+    yieldPerAcre: 1500,
+    optimalTemp: '18-28°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Tomatoes': {
+    name: 'Tomatoes',
+    category: 'Vegetable',
+    growthDays: 80,
+    wateringFrequency: 1,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28, 42, 56],
+    fertilizers: ['NPK 19-19-19', 'Calcium Nitrate', 'Potash (0-0-60)'],
+    pestControlFrequency: 7,
+    pesticides: ['Mancozeb', 'Chlorothalonil', 'Imidacloprid', 'Abamectin'],
+    yieldPerAcre: 8000,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Potatoes': {
+    name: 'Potatoes',
+    category: 'Vegetable',
+    growthDays: 90,
+    wateringFrequency: 5,
+    weedingFrequency: 14,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['NPK 17-17-17', 'Urea (46-0-0)', 'Potash (0-0-60)'],
+    pestControlFrequency: 10,
+    pesticides: ['Mancozeb', 'Metalaxyl', 'Imidacloprid'],
+    yieldPerAcre: 6000,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Onions': {
+    name: 'Onions',
+    category: 'Vegetable',
+    growthDays: 100,
+    wateringFrequency: 4,
+    weedingFrequency: 14,
+    fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 19-19-19', 'Urea (46-0-0)', 'Potash (0-0-60)'],
+    pestControlFrequency: 14,
+    pesticides: ['Mancozeb', 'Chlorpyrifos', 'Thiamethoxam'],
+    yieldPerAcre: 5000,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Cabbage': {
+    name: 'Cabbage',
+    category: 'Vegetable',
+    growthDays: 70,
+    wateringFrequency: 3,
+    weedingFrequency: 10,
+    fertilizerSchedule: [14, 35, 49],
+    fertilizers: ['NPK 17-17-17', 'Urea (46-0-0)', 'Calcium Nitrate'],
+    pestControlFrequency: 7,
+    pesticides: ['Cypermethrin', 'Chlorpyrifos', 'Bacillus thuringiensis'],
+    yieldPerAcre: 7000,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Carrots': {
+    name: 'Carrots',
+    category: 'Vegetable',
+    growthDays: 75,
+    wateringFrequency: 3,
+    weedingFrequency: 10,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['NPK 10-26-26', 'Potash (0-0-60)'],
+    pestControlFrequency: 14,
+    pesticides: ['Chlorpyrifos', 'Malathion'],
+    yieldPerAcre: 4500,
+    optimalTemp: '15-25°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Cotton': {
+    name: 'Cotton',
+    category: 'Cash Crop',
+    growthDays: 150,
+    wateringFrequency: 10,
+    weedingFrequency: 21,
+    fertilizerSchedule: [28, 56, 84],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)', 'Potash (0-0-60)'],
+    pestControlFrequency: 10,
+    pesticides: ['Cypermethrin', 'Imidacloprid', 'Profenofos'],
+    yieldPerAcre: 800,
+    optimalTemp: '25-35°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Sugarcane': {
+    name: 'Sugarcane',
+    category: 'Cash Crop',
+    growthDays: 365,
+    wateringFrequency: 7,
+    weedingFrequency: 28,
+    fertilizerSchedule: [30, 60, 90, 120],
+    fertilizers: ['Urea (46-0-0)', 'NPK 17-17-17', 'Potash (0-0-60)'],
+    pestControlFrequency: 21,
+    pesticides: ['Chlorpyrifos', 'Imidacloprid', 'Carbofuran'],
+    yieldPerAcre: 35000,
+    optimalTemp: '25-35°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Coffee': {
+    name: 'Coffee',
+    category: 'Cash Crop',
+    growthDays: 270,
+    wateringFrequency: 7,
+    weedingFrequency: 28,
+    fertilizerSchedule: [60, 120, 180],
+    fertilizers: ['NPK 17-17-17', 'Organic Compost', 'Potash (0-0-60)'],
+    pestControlFrequency: 21,
+    pesticides: ['Copper oxychloride', 'Imidacloprid', 'Chlorpyrifos'],
+    yieldPerAcre: 1200,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Tea': {
+    name: 'Tea',
+    category: 'Cash Crop',
+    growthDays: 180,
+    wateringFrequency: 5,
+    weedingFrequency: 21,
+    fertilizerSchedule: [45, 90, 135],
+    fertilizers: ['Urea (46-0-0)', 'NPK 20-20-20', 'Ammonium Sulfate'],
+    pestControlFrequency: 14,
+    pesticides: ['Copper oxychloride', 'Quinalphos', 'Imidacloprid'],
+    yieldPerAcre: 2000,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Sunflower': {
+    name: 'Sunflower',
+    category: 'Oilseed',
+    growthDays: 90,
+    wateringFrequency: 7,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['DAP (18-46-0)', 'Urea (46-0-0)', 'Potash (0-0-60)'],
+    pestControlFrequency: 14,
+    pesticides: ['Chlorpyrifos', 'Imidacloprid', 'Cypermethrin'],
+    yieldPerAcre: 1500,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Basil': {
+    name: 'Basil',
+    category: 'Herb',
+    growthDays: 45,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil', 'Pyrethrin'],
+    yieldPerAcre: 800,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Mint': {
+    name: 'Mint',
+    category: 'Herb',
+    growthDays: 40,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 600,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Parsley': {
+    name: 'Parsley',
+    category: 'Herb',
+    growthDays: 50,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 500,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Coriander': {
+    name: 'Coriander',
+    category: 'Herb',
+    growthDays: 40,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 700,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Lettuce': {
+    name: 'Lettuce',
+    category: 'Vegetable',
+    growthDays: 50,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Calcium Nitrate'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil', 'Pyrethrin'],
+    yieldPerAcre: 3500,
+    optimalTemp: '15-20°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Spinach': {
+    name: 'Spinach',
+    category: 'Vegetable',
+    growthDays: 45,
+    wateringFrequency: 3,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Urea (46-0-0)'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 4000,
+    optimalTemp: '15-20°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Peppers': {
+    name: 'Peppers',
+    category: 'Vegetable',
+    growthDays: 85,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28, 42, 56],
+    fertilizers: ['NPK 19-19-19', 'Calcium Nitrate', 'Potash (0-0-60)'],
+    pestControlFrequency: 7,
+    pesticides: ['Imidacloprid', 'Abamectin', 'Mancozeb'],
+    yieldPerAcre: 6000,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Cucumber': {
+    name: 'Cucumber',
+    category: 'Vegetable',
+    growthDays: 60,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28, 42],
+    fertilizers: ['NPK 19-19-19', 'Potash (0-0-60)'],
+    pestControlFrequency: 7,
+    pesticides: ['Mancozeb', 'Imidacloprid'],
+    yieldPerAcre: 7000,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Pumpkin': {
+    name: 'Pumpkin',
+    category: 'Vegetable',
+    growthDays: 100,
+    wateringFrequency: 5,
+    weedingFrequency: 14,
+    fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 17-17-17', 'Organic Compost'],
+    pestControlFrequency: 14,
+    pesticides: ['Chlorpyrifos', 'Mancozeb'],
+    yieldPerAcre: 8000,
+    optimalTemp: '20-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Watermelon': {
+    name: 'Watermelon',
+    category: 'Fruit',
+    growthDays: 90,
+    wateringFrequency: 4,
+    weedingFrequency: 14,
+    fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 19-19-19', 'Potash (0-0-60)'],
+    pestControlFrequency: 10,
+    pesticides: ['Mancozeb', 'Imidacloprid'],
+    yieldPerAcre: 12000,
+    optimalTemp: '25-35°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Strawberry': {
+    name: 'Strawberry',
+    category: 'Fruit',
+    growthDays: 120,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [21, 42, 63, 84],
+    fertilizers: ['NPK 10-10-10', 'Calcium Nitrate'],
+    pestControlFrequency: 7,
+    pesticides: ['Mancozeb', 'Abamectin'],
+    yieldPerAcre: 5000,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Peas': {
+    name: 'Peas',
+    category: 'Legume',
+    growthDays: 65,
+    wateringFrequency: 5,
+    weedingFrequency: 14,
+    fertilizerSchedule: [14, 35],
+    fertilizers: ['DAP (18-46-0)', 'NPK 10-26-26'],
+    pestControlFrequency: 10,
+    pesticides: ['Chlorpyrifos', 'Cypermethrin'],
+    yieldPerAcre: 1600,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Groundnuts': {
+    name: 'Groundnuts',
+    category: 'Legume',
+    growthDays: 120,
+    wateringFrequency: 7,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['DAP (18-46-0)', 'Potash (0-0-60)'],
+    pestControlFrequency: 14,
+    pesticides: ['Chlorpyrifos', 'Imidacloprid'],
+    yieldPerAcre: 2000,
+    optimalTemp: '25-35°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Sorghum': {
+    name: 'Sorghum',
+    category: 'Cereal',
+    growthDays: 100,
+    wateringFrequency: 10,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)'],
+    pestControlFrequency: 14,
+    pesticides: ['Cypermethrin', 'Chlorpyrifos'],
+    yieldPerAcre: 2200,
+    optimalTemp: '25-35°C',
+    soilType: ['Loam', 'Clay']
+  },
+  'Millet': {
+    name: 'Millet',
+    category: 'Cereal',
+    growthDays: 75,
+    wateringFrequency: 10,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['Urea (46-0-0)', 'DAP (18-46-0)'],
+    pestControlFrequency: 14,
+    pesticides: ['Cypermethrin'],
+    yieldPerAcre: 1800,
+    optimalTemp: '25-35°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Cassava': {
+    name: 'Cassava',
+    category: 'Root Crop',
+    growthDays: 300,
+    wateringFrequency: 7,
+    weedingFrequency: 28,
+    fertilizerSchedule: [30, 90, 150],
+    fertilizers: ['NPK 15-15-15', 'Potash (0-0-60)'],
+    pestControlFrequency: 21,
+    pesticides: ['Chlorpyrifos', 'Imidacloprid'],
+    yieldPerAcre: 10000,
+    optimalTemp: '25-35°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Sweet Potato': {
+    name: 'Sweet Potato',
+    category: 'Root Crop',
+    growthDays: 120,
+    wateringFrequency: 5,
+    weedingFrequency: 21,
+    fertilizerSchedule: [21, 42, 63],
+    fertilizers: ['NPK 17-17-17', 'Potash (0-0-60)'],
+    pestControlFrequency: 14,
+    pesticides: ['Chlorpyrifos', 'Mancozeb'],
+    yieldPerAcre: 7000,
+    optimalTemp: '20-30°C',
+    soilType: ['Sandy', 'Loam']
+  },
+  'Eggplant': {
+    name: 'Eggplant',
+    category: 'Vegetable',
+    growthDays: 80,
+    wateringFrequency: 2,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28, 42, 56],
+    fertilizers: ['NPK 19-19-19', 'Calcium Nitrate'],
+    pestControlFrequency: 7,
+    pesticides: ['Imidacloprid', 'Cypermethrin', 'Mancozeb'],
+    yieldPerAcre: 6500,
+    optimalTemp: '22-30°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Thyme': {
+    name: 'Thyme',
+    category: 'Herb',
+    growthDays: 50,
+    wateringFrequency: 3,
+    weedingFrequency: 7,
+    fertilizerSchedule: [14, 28],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 10,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 500,
+    optimalTemp: '15-25°C',
+    soilType: ['Loam', 'Sandy']
+  },
+  'Rosemary': {
+    name: 'Rosemary',
+    category: 'Herb',
+    growthDays: 60,
+    wateringFrequency: 4,
+    weedingFrequency: 7,
+    fertilizerSchedule: [21, 42],
+    fertilizers: ['NPK 10-10-10', 'Organic Compost'],
+    pestControlFrequency: 14,
+    pesticides: ['Neem oil'],
+    yieldPerAcre: 600,
+    optimalTemp: '15-25°C',
+    soilType: ['Sandy', 'Loam']
+  }
+};
+
+export const getCropList = () => Object.keys(CROP_DATABASE).sort();
+
+export const getCropData = (cropName: string): CropData | null => {
+  const exactMatch = CROP_DATABASE[cropName];
+  if (exactMatch) return exactMatch;
+  
+  const caseInsensitiveMatch = Object.keys(CROP_DATABASE).find(
+    key => key.toLowerCase() === cropName.toLowerCase()
+  );
+  
+  return caseInsensitiveMatch ? CROP_DATABASE[caseInsensitiveMatch] : null;
+};
+
+export const calculateHarvestDate = (plantingDate: string, cropName: string): string => {
+  const crop = getCropData(cropName);
+  if (!crop) return '';
+  
+  const planting = new Date(plantingDate);
+  const harvest = new Date(planting);
+  harvest.setDate(harvest.getDate() + crop.growthDays);
+  
+  return harvest.toISOString().split('T')[0];
+};
+
+export const generateMaintenanceSchedule = (plantingDate: string, cropName: string) => {
+  const crop = getCropData(cropName);
+  if (!crop) return [];
+  
+  const planting = new Date(plantingDate);
+  const schedule = [];
+  
+  // Watering schedule
+  for (let day = crop.wateringFrequency; day < crop.growthDays; day += crop.wateringFrequency) {
+    const date = new Date(planting);
+    date.setDate(date.getDate() + day);
+    schedule.push({
+      type: 'Irrigation',
+      date: date.toISOString().split('T')[0],
+      day: day
+    });
+  }
+  
+  // Weeding schedule
+  for (let day = crop.weedingFrequency; day < crop.growthDays; day += crop.weedingFrequency) {
+    const date = new Date(planting);
+    date.setDate(date.getDate() + day);
+    schedule.push({
+      type: 'Weeding',
+      date: date.toISOString().split('T')[0],
+      day: day
+    });
+  }
+  
+  // Fertilizer schedule
+  crop.fertilizerSchedule.forEach(day => {
+    const date = new Date(planting);
+    date.setDate(date.getDate() + day);
+    schedule.push({
+      type: 'Fertilizer',
+      date: date.toISOString().split('T')[0],
+      day: day,
+      fertilizers: crop.fertilizers
+    });
+  });
+  
+  // Pest control schedule
+  for (let day = crop.pestControlFrequency; day < crop.growthDays; day += crop.pestControlFrequency) {
+    const date = new Date(planting);
+    date.setDate(date.getDate() + day);
+    schedule.push({
+      type: 'Pest Control',
+      date: date.toISOString().split('T')[0],
+      day: day,
+      pesticides: crop.pesticides
+    });
+  }
+  
+  return schedule.sort((a, b) => a.day - b.day);
+};
