@@ -1,4 +1,4 @@
-import React, { ErrorInfo, Component, useEffect } from 'react';
+import React, { ErrorInfo, Component, useEffect, lazy, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { UserProvider, useUser } from './contexts/UserContext';
 import { SocketProvider } from './contexts/SocketContext';
@@ -10,19 +10,20 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import WorkerDashboard from './pages/WorkerDashboard';
 
-import Farms from './pages/Farms';
-import AddSection from './pages/AddSection';
-import Crops from './pages/Crops';
-import Tasks from './pages/Tasks';
-import Inventory from './pages/Inventory';
-import Financial from './pages/Financial';
-import Weather from './pages/Weather';
-import Users from './pages/Users';
-import Labour from './pages/Labour';
-import Reports from './pages/Reports';
-import Livestock from './pages/Livestock';
-import LivestockInventory from './pages/LivestockInventory';
-import Analytics from './pages/Analytics';
+// Lazy load heavy pages
+const Farms = lazy(() => import('./pages/Farms'));
+const AddSection = lazy(() => import('./pages/AddSection'));
+const Crops = lazy(() => import('./pages/Crops'));
+const Tasks = lazy(() => import('./pages/Tasks'));
+const Inventory = lazy(() => import('./pages/Inventory'));
+const Financial = lazy(() => import('./pages/Financial'));
+const Weather = lazy(() => import('./pages/Weather'));
+const Users = lazy(() => import('./pages/Users'));
+const Labour = lazy(() => import('./pages/Labour'));
+const Reports = lazy(() => import('./pages/Reports'));
+const Livestock = lazy(() => import('./pages/Livestock'));
+const LivestockInventory = lazy(() => import('./pages/LivestockInventory'));
+const Analytics = lazy(() => import('./pages/Analytics'));
 import InstallPWA from './components/InstallPWA';
 import OfflineIndicator from './components/OfflineIndicator';
 
@@ -85,7 +86,8 @@ const AppRoutes: React.FC = () => {
 
   return (
     <Layout>
-      <Routes>
+      <Suspense fallback={<div className="flex items-center justify-center h-screen"><div className="text-gray-500">Loading...</div></div>}>
+        <Routes>
         <Route path="/" element={getDashboard()} />
         <Route path="/login" element={<Navigate to="/" replace />} />
         <Route path="/tasks" element={<Tasks />} />
@@ -110,7 +112,8 @@ const AppRoutes: React.FC = () => {
           </>
         )}
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+        </Routes>
+      </Suspense>
     </Layout>
   );
 };
