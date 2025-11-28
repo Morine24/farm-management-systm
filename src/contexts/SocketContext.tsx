@@ -19,9 +19,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       initialized.current = true;
       
       if (!socket) {
-        const socketUrl = process.env.NODE_ENV === 'production' 
-          ? window.location.origin
-          : 'http://localhost:5001';
+        const socketUrl = process.env.REACT_APP_API_URL?.replace('/api', '') || 'http://localhost:5001';
         
         socket = io(socketUrl, {
           transports: ['websocket', 'polling'],
