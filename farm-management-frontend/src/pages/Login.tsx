@@ -60,8 +60,8 @@ const Login: React.FC = () => {
       const userDoc = querySnapshot.docs[0];
       const userData = { id: userDoc.id, ...userDoc.data() } as User;
 
-      const hashedPassword = await hashPassword(password);
-      if (userData.password !== hashedPassword) {
+      // Use plain text comparison to match backend
+      if (userData.password !== password) {
         setError('Invalid email or password');
         return;
       }
@@ -101,9 +101,9 @@ const Login: React.FC = () => {
 
     try {
       setLoading(true);
-      const hashedPassword = await hashPassword(newPassword);
+      // Store plain text password to match backend
       await updateDoc(doc(db, 'users', currentUser!.id), {
-        password: hashedPassword,
+        password: newPassword,
         isDefaultPassword: false
       });
 
